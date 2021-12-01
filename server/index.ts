@@ -54,9 +54,10 @@ interface Task {
 
 interface ExecutionResult {
   code: number;
-  args?: string;
   stdout: string;
   stderr: string;
+  outputMatchesExpectation?: boolean;
+  args?: string;
 }
 
 interface SubmitTaskRequest {
@@ -67,6 +68,12 @@ interface SubmitTaskRequest {
 interface SubmitTaskResponse {
   results: ExecutionResult[];
   success: boolean;
+}
+
+interface CodeCompileAndRunRequest {
+  code: string;
+  expectedResults: string[];
+  testData?: string[];
 }
 
 const taskTokens: TaskToken[] = [];
@@ -82,7 +89,7 @@ const tasks: Task[] = [
   },
   {
     description:
-      'Írjon programot, mely az argumentumban megadott sorszámú fibonacci sorozatot írja ki vesszővel és szóközzel elválasztva! Pl. bemenet: 7, kimenet: `1, 1, 2, 3, 5, 8, 13`',
+      'Írjon programot, mely az argumentumban megadott sorszámú fibonacci sorozatot írja ki vesszővel és szóközzel elválasztva! Pl. bemenet: `7`, kimenet: `1, 1, 2, 3, 5, 8, 13`',
     testData: ['1', '10', '30'],
     expectedResults: [
       '1',
@@ -137,11 +144,14 @@ app.post('/submit-task', async (req, res) => {
   }
 
   const task = tasks[taskToken.id];
+  const codeCompileAndRunRequest: CodeCompileAndRunRequest = {
+    code,
+    expectedResults: task.expectedResults,
+    ...(task.testData ? { testData: task.testData } : {}),
+  };
   const response = await fetch(`http://${compilerAddress}/compile-and-run`, {
     method: 'POST',
-    body: JSON.stringify({
-      code,
-    }),
+    body: JSON.stringify(codeCompileAndRunRequest),
     headers: { 'Content-Type': 'application/json' },
   });
 

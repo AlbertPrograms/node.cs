@@ -3,6 +3,8 @@ import {
   MouseEventHandler,
   FormEventHandler,
   useState,
+  useEffect,
+  ReactElement,
 } from 'react';
 import './Editor.css';
 
@@ -17,9 +19,10 @@ interface TaskResponse {
 
 interface ExecutionResult {
   code: number;
-  args?: string;
   stdout: string;
   stderr: string;
+  outputMatchesExpectation?: boolean;
+  args?: string;
 }
 
 interface SubmitResponse {
@@ -27,14 +30,11 @@ interface SubmitResponse {
   success: boolean;
 }
 
-const getRowsByHeight = (height: number) => {
-  return Math.floor(height / 25) - 8;
-};
-
 const Editor: React.FC<EditorProps> = ({ height }) => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState<string>();
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
+  const rowStyle = { height: `${height - 202}px` };
   let token: string;
 
   fetch('/get-task')
@@ -60,7 +60,8 @@ const Editor: React.FC<EditorProps> = ({ height }) => {
   };
 
   // TODO cookie token as session
-  // TODO store progress on BE every couple of seconds with useEffect
+  // TODO store progress on BE every couple of seconds with useEffect (save text from textarea and send that)
+  // also typed in code! losing this stuff sucks
   const handleSubmit: FormEventHandler = (event) => {
     event.preventDefault();
     console.log(token);
@@ -86,16 +87,33 @@ const Editor: React.FC<EditorProps> = ({ height }) => {
     event.preventDefault();
   };
 
+  const formatTaskDescription = (text: string): string | ReactElement => {
+    const splitByBackticks = text.split('`');
+
+    if (splitByBackticks.length % 2 === 0) {
+      return text;
+    }
+
+    const formattedArray = splitByBackticks.map((str, index) => (
+      index % 2 === 1 ? <code>{str}</code> : str
+    ));
+    return <span>{formattedArray}</span>;
+  }
+
+  const formatOutput = (text: string): string => {
+    return text.split('\n').join('<br />')
+  }
+
   // TODO monospace ``
+  // TODO tab -> 2/4 spaces
   return (
     <div className="container d-flex vh-100">
       <div className="row w-100 justify-content-center align-self-center">
-        <h4>{task ? task : ''}</h4>
+        <h4>{task ? formatTaskDescription(task) : ''}</h4>
         <form method="post" onSubmit={handleSubmit}>
-          <div className="row">
-            <div className={`col ${submitResponse ? 'col-6' : 'col-12'}`}>
+          <div className="row" style={rowStyle}>
+            <div className={`col ${submitResponse ? 'col-6' : 'col-12'} h-100`}>
               <textarea
-                rows={getRowsByHeight(height)}
                 name="code"
                 className="form-control h-100 bg-dark text-light font-monospace"
                 onChange={handleTextareaChange}
@@ -103,17 +121,25 @@ const Editor: React.FC<EditorProps> = ({ height }) => {
               />
             </div>
             {submitResponse && (
-              <div className="col col-6">
-                <div className="card h-100 bg-dark border-light px-3 py-1 font-monospace">
+              <div className="col col-6 h-100">
+                <div className="card h-100 bg-dark border-light px-3 py-1 font-monospace overflow-auto">
                   {submitResponse.results.map((result) => (
                     <div>
-                      {result.args && <div className="row">
-                        <div className="lead mb-2">Futtatási argumentumok</div>
-                        <div>{result.args}</div>
-                      </div>}
-                      <div className="row">
+                      {result.args && (
+                        <div className="row">
+                          <div className="lead mb-2">
+                            Futtatási argumentumok
+                          </div>
+                          <div>{result.args}</div>
+                        </div>
+                      )}
+                      <div
+                        className={`row ${
+                          result.outputMatchesExpectation ? '' : 'text-danger'
+                        }`}
+                      >
                         <div className="lead mb-2">Kimenet</div>
-                        <div>{result.stdout}</div>
+                        <div>{formatOutput(result.stdout)}</div>
                       </div>
                       {result.stderr && (
                         <div className="row">
@@ -121,7 +147,7 @@ const Editor: React.FC<EditorProps> = ({ height }) => {
                           <div className="text-danger lead my-2">
                             Hibakimenet
                           </div>
-                          <div>{result.stderr}</div>
+                          <div>{formatOutput(result.stderr)}</div>
                         </div>
                       )}
                       <div
