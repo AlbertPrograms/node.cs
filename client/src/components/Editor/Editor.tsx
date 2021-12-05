@@ -8,9 +8,6 @@ import {
 } from 'react';
 import './Editor.css';
 
-interface EditorProps {
-  height: number;
-}
 
 interface TaskResponse {
   task: string;
@@ -30,12 +27,22 @@ interface SubmitResponse {
   success: boolean;
 }
 
-const Editor: React.FC<EditorProps> = ({ height }) => {
+const Editor: React.FC = () => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState<string>();
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
+  const [height, setHeight] = useState(window.innerHeight);
   const rowStyle = { height: `${height - 202}px` };
   let token: string;
+
+  useEffect(() => {
+    function handleResize() {
+      setHeight(window.innerHeight);
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   fetch('/get-task')
     .then((res) => res.json())

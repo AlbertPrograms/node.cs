@@ -1,23 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import './css/bootstrap.min.css';
 import './App.css';
 
-import Editor from './components/Editor';
+import Editor from './components/Editor/Editor';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+
+// TODO documentation
+// React router https://reactrouter.com/docs/en/v6/getting-started/overview
 
 const App: React.FC = () => {
-  const [height, setHeight] = useState(window.innerHeight);
-
-  useEffect(() => {
-    function handleResize() {
-      setHeight(window.innerHeight);
-    }
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   return (
-    <Editor height={height} />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Editor />}>
+          <Route path="/practice" element={<Editor />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 };
 
