@@ -1,4 +1,4 @@
-import {
+import React, {
   ChangeEventHandler,
   MouseEventHandler,
   FormEventHandler,
@@ -8,6 +8,14 @@ import {
 } from 'react';
 import './Editor.css';
 
+export const enum EditorModes {
+  EXAM,
+  PRACTICE,
+}
+
+interface EditorParams {
+  mode: EditorModes;
+}
 
 interface TaskResponse {
   task: string;
@@ -27,7 +35,7 @@ interface SubmitResponse {
   success: boolean;
 }
 
-const Editor: React.FC = () => {
+const Editor: React.FC<EditorParams> = ({ mode }) => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState<string>();
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
@@ -101,17 +109,16 @@ const Editor: React.FC = () => {
       return text;
     }
 
-    const formattedArray = splitByBackticks.map((str, index) => (
+    const formattedArray = splitByBackticks.map((str, index) =>
       index % 2 === 1 ? <code>{str}</code> : str
-    ));
+    );
     return <span>{formattedArray}</span>;
-  }
+  };
 
   const formatOutput = (text: string): string => {
-    return text.split('\n').join('<br />')
-  }
+    return text.split('\n').join('<br />');
+  };
 
-  // TODO monospace ``
   // TODO tab -> 2/4 spaces
   return (
     <div className="container d-flex vh-100">
