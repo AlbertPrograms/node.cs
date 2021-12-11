@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import { UserTable } from './schemas/UserTable';
 
 dotenv.config();
 
@@ -16,6 +17,8 @@ if (!compilerAddress) {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.listen(port, () => console.log(`Listening on port ${port}`));
+
+const userTable = UserTable.getInstance();
 
 const init = async (): Promise<void> => {
   if (initialized) {
