@@ -1,6 +1,6 @@
 import { db, dbArraySeparatorString } from '../db';
 import { Knex } from 'knex';
-import { Entity, EntityParams } from '../entities/EntityInterface';
+import { Entity, EntityInterface, EntityParams } from '../entities/EntityBase';
 
 export interface TableField<T> {
   name: keyof T;
@@ -10,16 +10,19 @@ export interface TableField<T> {
   multi?: boolean;
 }
 
-export class EntityTable<U extends EntityParams = EntityParams, T extends Entity<U> = Entity<U>> {
+export class EntityTable<
+  U extends EntityParams = EntityParams,
+  T extends EntityInterface<U> = EntityInterface<U>
+> {
   private static initPromise: Promise<void>;
   private entities: T[] = [];
 
-  protected tableName = 'entityName';
+  protected tableName: string;
   // Inheritance breaks is the first param is specified as EntityParams :/
   protected static instance: EntityTable<any, Entity>;
-  protected static entityClass: Entity['prototype'];
-  protected tableFields: TableField<U>[] = [];
-  protected defaultDataSet: T[] = [];
+  protected entity: EntityInterface<U>;
+  protected tableFields: TableField<U>[];
+  protected defaultDataSet: T[];
 
   protected constructor() {
     this.initTable();
@@ -30,20 +33,14 @@ export class EntityTable<U extends EntityParams = EntityParams, T extends Entity
 
     EntityTable.initPromise = new Promise((r) => (resolve = r));
 
+    // This delay ensures that descendant class fields are set
+    await new Promise((r) => setTimeout(r, 1000));
+
     const tableExists = await db.schema.hasTable(this.tableName);
-    console.log(tableExists);
     if (!tableExists) {
       const primaryFields = this.PrimaryFields;
 
-      if (primaryFields.length > 1) {
-        throw new Error(
-          `Table ${this.tableName} has more than one primary field`
-        );
-      } else if (primaryFields.length < 1) {
-        throw new Error(
-          `Primary field doesn't exist on table ${this.tableName}`
-        );
-      }
+      this.checkPrimaryFieldValidity(primaryFields);
 
       await db.schema.createTable(this.tableName, (table) => {
         this.tableFields.forEach((tableField) => {
@@ -60,6 +57,15 @@ export class EntityTable<U extends EntityParams = EntityParams, T extends Entity
 
     this.entities = await this.load();
     resolve();
+  }
+  private checkPrimaryFieldValidity(primaryFields: TableField<any>[]): void {
+    if (primaryFields.length > 1) {
+      throw new Error(
+        `Table ${this.tableName} has more than one primary field`
+      );
+    } else if (primaryFields.length < 1) {
+      throw new Error(`Primary field doesn't exist on table ${this.tableName}`);
+    }
   }
 
   private get PrimaryFields() {
@@ -84,25 +90,45 @@ export class EntityTable<U extends EntityParams = EntityParams, T extends Entity
         return db(this.tableName)
           .where('name', entity.name)
           .update(() => {
-            const newEntity: Partial<U> = {};
-
-            for (const field of this.tableFields) {
-              if (field.multi) {
-                newEntity[field.name] = entity[field.name].join(dbArraySeparatorString);
-              } else {
-                newEntity[field.name] = entity[field.name];
-              }
-            }
-
-            return newEntity;
+            return this.convertFromEntityToDbParams(entity);
           })
           .transacting(trx);
       });
 
-      Promise.all(queries)
-        .then(trx.commit)
-        .catch(trx.rollback);
+      Promise.all(queries).then(trx.commit).catch(trx.rollback);
     });
+  }
+  private convertToEntityFromDbParams(params: U): T {
+    const newParams: Partial<U> = {};
+
+    for (const field of this.tableFields) {
+      const name = field.name;
+      if (field.multi) {
+        newParams[name] = (params[name] as string).split(
+          dbArraySeparatorString
+        ) as unknown as U[keyof U];
+      } else {
+        newParams[name] = params[name];
+      }
+    }
+
+    return this.entity.createNew(newParams as U) as unknown as T;
+  }
+  private convertFromEntityToDbParams(entity: T): U {
+    const params: Partial<U> = {};
+
+    for (const field of this.tableFields) {
+      const name = field.name;
+      if (field.multi) {
+        params[name] = (entity.getParams()[name] as string[]).join(
+          dbArraySeparatorString
+        ) as unknown as U[keyof U];
+      } else {
+        params[name] = entity.getParams()[name];
+      }
+    }
+
+    return params as U;
   }
 
   private async add(entities: T[]): Promise<void> {
@@ -110,14 +136,15 @@ export class EntityTable<U extends EntityParams = EntityParams, T extends Entity
 
     db.batchInsert(
       this.tableName,
-      entities.map((entity) => entity.convertToDb()),
+      /*@ts-ignore*/
+      entities.map((entity) => this.convertFromEntityToDbParams(entity)),
       50
     );
   }
 
   private async load(): Promise<T[]> {
-    return (await db.select('*').from(this.tableName)).map(
-      (lp: U) => EntityTable.entityClass.createNew(lp) as T
+    return (await db.select('*').from(this.tableName)).map((lp: U) =>
+      this.convertToEntityFromDbParams(lp)
     );
   }
 
@@ -141,11 +168,11 @@ export class EntityTable<U extends EntityParams = EntityParams, T extends Entity
     const existing = entities.filter((entity) =>
       this.entities.some((e) => e.name === entity.name)
     );
-    const newListings = entities.filter(
+    const newEntities = entities.filter(
       (entity) => !existing.some((e) => e.name === entity.name)
     );
 
     this.update(existing);
-    this.add(newListings);
+    this.add(newEntities);
   }
 }

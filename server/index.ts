@@ -22,6 +22,10 @@ const userTable = UserTable.getInstance();
 
 const init = async (): Promise<void> => {
   if (initialized) {
+    return;
+  }
+
+  if (initPromise) {
     await initPromise;
     return;
   }

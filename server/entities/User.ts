@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { Entity, EntityParams } from './EntityInterface';
+import { Entity, EntityParams } from './EntityBase';
 
 export interface UserParams extends EntityParams {
   name: string; // admin for admin, neptune code otherwise
@@ -9,78 +9,24 @@ export interface UserParams extends EntityParams {
   teacher: boolean;
 }
 
-export class User implements Entity<UserParams> {
-  private name: string;
-  private email: string;
-  private password: string;
-  private admin: boolean;
-  private teacher: boolean;
-
-  constructor({ name, email, password, admin, teacher }: UserParams) {
-    this.name = name;
-    this.email = email;
-    this.password = password;
-    this.admin = admin;
-    this.teacher = teacher;
-  }
-
-  createNew(paramsOrUser: UserParams | User) {
-    const params = this.getParamsFromParamsOrUser(paramsOrUser);
-
-    return new User(params);
-  }
-
-  set(paramsOrUser: UserParams | User) {
-    const params = this.getParamsFromParamsOrUser(paramsOrUser);
-
-    this.setFromParams(params);
-  }
-  private setFromParams({ name, email, password, admin, teacher }: UserParams) {
-    this.name = name;
-    this.email = email;
-    this.password = password;
-    this.admin = admin;
-    this.teacher = teacher;
-  }
-
-  private getParamsFromParamsOrUser(paramsOrUser: UserParams | User): UserParams {
-    const params: UserParams = Object.hasOwnProperty.call(
-      paramsOrUser,
-      'getConstructorParams'
-    )
-      ? (paramsOrUser as User).getConstructorParams()
-      : (paramsOrUser as UserParams);
-
-    return params;
-  }
-
+export class User extends Entity<UserParams> {
   get Name() {
-    return this.name;
+    return this.params.name;
   }
 
   get Email() {
-    return this.email;
+    return this.params.email;
   }
 
   isAdmin() {
-    return !!this.admin;
+    return !!this.params.admin;
   }
 
   isTeacher() {
-    return !!this.teacher;
+    return !!this.params.teacher;
   }
 
   authenticate(providedPassword: string) {
-    return bcrypt.compareSync(providedPassword, this.password);
-  }
-
-  private getConstructorParams(): UserParams {
-    return {
-      name: this.name,
-      email: this.email,
-      password: this.password,
-      admin: this.admin,
-      teacher: this.teacher,
-    };
+    return bcrypt.compareSync(providedPassword, this.params.password);
   }
 }

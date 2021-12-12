@@ -31,7 +31,7 @@ const tableFields: TableField<UserParams>[] = [
 export class UserTable extends EntityTable<UserParams, User> {
   protected tableName = 'user';
   protected static instance: UserTable;
-  protected static entityClass = User;
+  protected entity = new User(null);
   protected tableFields = tableFields;
   protected defaultDataSet = users;
 
