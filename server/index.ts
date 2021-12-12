@@ -176,6 +176,14 @@ app.post('/submit-task', async (req, res) => {
   } */
 });
 
-app.post('/login', (req, res) => {
-  // TODO auth
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = userTable.find({ name: username });
+
+  if (!user) {
+    res.status(401);
+    return;
+  }
+
+  const authSuccess = user.authenticate(password);
 });

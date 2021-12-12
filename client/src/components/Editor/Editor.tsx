@@ -83,10 +83,7 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
 
     fetch('/submit-task', {
       method: 'POST',
-      body: JSON.stringify({
-        token,
-        code,
-      }),
+      body: JSON.stringify({ token, code }),
       headers: { 'Content-Type': 'application/json' },
     }).then(async (res) => {
       const response = (await res.json()) as SubmitResponse;

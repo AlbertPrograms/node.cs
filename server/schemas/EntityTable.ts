@@ -1,6 +1,11 @@
 import { db, dbArraySeparatorString } from '../db';
 import { Knex } from 'knex';
-import { Entity, EntityInterface, EntityParams } from '../entities/EntityBase';
+import {
+  Entity,
+  EntityInterface,
+  EntityParams,
+  EntityValueType,
+} from '../entities/EntityBase';
 
 export interface TableField<T> {
   name: keyof T;
@@ -174,5 +179,9 @@ export class EntityTable<
 
     this.update(existing);
     this.add(newEntities);
+  }
+
+  find(searchParams: Record<keyof U, EntityValueType>): T {
+    return this.entities.find((entity) => entity.match(searchParams));
   }
 }
