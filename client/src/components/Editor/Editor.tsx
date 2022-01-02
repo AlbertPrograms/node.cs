@@ -41,7 +41,7 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
   const [height, setHeight] = useState(window.innerHeight);
   const rowStyle = { height: `${height - 202}px` };
-  let token: string;
+  let taskToken: string;
 
   useEffect(() => {
     function handleResize() {
@@ -56,7 +56,7 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
     .then((res) => res.json())
     .then((r: TaskResponse) => {
       setTask(r.task);
-      token = r.token;
+      taskToken = r.token;
     });
 
   const handleTextareaChange: ChangeEventHandler = (event) => {
@@ -79,11 +79,11 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
   // also typed in code! losing this stuff sucks
   const handleSubmit: FormEventHandler = (event) => {
     event.preventDefault();
-    console.log(token);
+    console.log(taskToken);
 
     fetch('/submit-task', {
       method: 'POST',
-      body: JSON.stringify({ token, code }),
+      body: JSON.stringify({ token: taskToken, code }),
       headers: { 'Content-Type': 'application/json' },
     }).then(async (res) => {
       const response = (await res.json()) as SubmitResponse;
@@ -107,7 +107,11 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
     }
 
     const formattedArray = splitByBackticks.map((str, index) =>
-      index % 2 === 1 ? <code>{str}</code> : str
+      index % 2 === 1 ? (
+        <code key={str}>{str}</code>
+      ) : (
+        <span key={str}>{str}</span>
+      )
     );
     return <span>{formattedArray}</span>;
   };
@@ -135,7 +139,7 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
               <div className="col col-6 h-100">
                 <div className="card h-100 bg-dark border-light px-3 py-1 font-monospace overflow-auto">
                   {submitResponse.results.map((result) => (
-                    <div>
+                    <div key={result.stdout}>
                       {result.args && (
                         <div className="row">
                           <div className="lead mb-2">

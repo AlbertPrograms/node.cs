@@ -1,30 +1,53 @@
-import React, { ChangeEvent, FormEvent } from 'react';
-import { UserToken } from '../../util/useToken';
+import React, { ChangeEvent, FormEvent, useState } from 'react';
+import { SessionTokenString } from '../../util/useSessionToken';
 
 interface LoginProps {
-  setToken: (token: UserToken) => void;
+  setToken: (token: SessionTokenString) => void;
+}
+
+interface LoginResponseBody {
+  sessionTokenString: SessionTokenString;
 }
 
 const Login: React.FC<LoginProps> = ({ setToken }) => {
-  let username: string;
-  let password: string;
+  const [username, setUsername] = useState<string>();
+  const [password, setPassword] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
+  const [fail, setFail] = useState(false);
 
   const handleChangeUsername = (event: ChangeEvent): void => {
-    username = (event.target as HTMLInputElement).value;
+    setUsername((event.target as HTMLInputElement).value);
   };
 
   const handleChangePassword = (event: ChangeEvent): void => {
-    password = (event.target as HTMLInputElement).value;
+    setPassword((event.target as HTMLInputElement).value);
   };
 
   const handleSubmit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
+    setSubmitting(true);
 
     fetch('/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
-      headers: { 'Content-Type': 'application/json', },
-    });
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(async (res) => {
+        setSubmitting(false);
+        if (res.status !== 200) {
+          throw new Error();
+        }
+
+        setFail(false);
+
+        const response: LoginResponseBody = await res.json();
+        setToken(response.sessionTokenString);
+      })
+      .catch((e) => {
+        setSubmitting(false);
+        setFail(true);
+        console.error(e);
+      });
   };
 
   return (
@@ -46,6 +69,7 @@ const Login: React.FC<LoginProps> = ({ setToken }) => {
               name="username"
               onChange={handleChangeUsername}
             />
+
             <label className="text-light text-center" htmlFor="password">
               Jelszó
             </label>
@@ -55,19 +79,23 @@ const Login: React.FC<LoginProps> = ({ setToken }) => {
               name="password"
               onChange={handleChangePassword}
             />
-            <button className="btn btn-dark m-2" type="submit">
-              Bejelentkezés
+
+            <button className="btn btn-dark border-secondary m-2" type="submit">
+              {!submitting ? (
+                <span>Bejelentkezés</span>
+              ) : (
+                <span>
+                  <span className="spinner-border spinner-border-sm"></span>
+                  &nbsp;Folyamatban...
+                </span>
+              )}
             </button>
-            <button className="btn btn-dark m-2 d-none" disabled>
-              <span className="spinner-border spinner-border-sm"></span>
-              &nbsp;Folyamatban...
-            </button>
-            <small className="d-none text-success text-center">
-              Sikeres belépés! Hamarosan továbbítunk...
-            </small>
-            <small className="d-none text-danger text-center">
-              Sikertelen belépés
-            </small>
+
+            {fail && (
+              <small className="text-danger text-center">
+                Sikertelen belépés
+              </small>
+            )}
           </form>
         </div>
       </div>

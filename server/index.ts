@@ -1,8 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import fetch from 'node-fetch';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { UserTable } from './schemas/UserTable';
+import { User } from './entities/User';
 
 dotenv.config();
 
@@ -16,6 +18,7 @@ if (!compilerAddress) {
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cookieParser());
 app.listen(port, () => console.log(`Listening on port ${port}`));
 
 const userTable = UserTable.getInstance();
@@ -43,6 +46,12 @@ let initPromise: Promise<void>;
 let initialized = false;
 
 init();
+
+interface SessionToken {
+  user: User;
+  session: string;
+  expiryTime: number;
+}
 
 interface TaskToken {
   id: Task['id'];
@@ -176,14 +185,58 @@ app.post('/submit-task', async (req, res) => {
   } */
 });
 
+const sessions: SessionToken[] = [];
+
+const assignSession = (user: User): string => {
+  const sessionTokenString = bcrypt.hashSync('' + Math.random(), 10);
+  const expiryTime = new Date().getTime() + 24 * 3600 * 1000; // One day tokens
+  sessions.push({ user, session: sessionTokenString, expiryTime });
+
+  return sessionTokenString;
+};
+
+const validateSessionTokenString = (tokenString: string): boolean => {
+  const sessionIndex = sessions.findIndex(
+    (sessionToken) => sessionToken.session === tokenString
+  );
+
+  if (sessionIndex === -1) {
+    return false;
+  }
+
+  const session = sessions[sessionIndex];
+
+  if (session.expiryTime < new Date().getTime()) {
+    sessions.splice(sessionIndex, 1);
+    return false;
+  }
+
+  return true;
+};
+
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = userTable.find({ name: username });
 
   if (!user) {
-    res.status(401);
+    res.status(401).send();
     return;
   }
 
   const authSuccess = user.authenticate(password);
+
+  if (!authSuccess) {
+    res.status(401).send();
+    return;
+  }
+
+  const sessionTokenString = assignSession(user);
+  res.status(200).send({ sessionTokenString });
+});
+
+app.post('/validate-token', (req, res) => {
+  const { sessionTokenString } = req.body;
+
+  const valid = validateSessionTokenString(sessionTokenString);
+  res.status(valid ? 200 : 401).send();
 });

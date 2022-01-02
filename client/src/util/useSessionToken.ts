@@ -1,26 +1,24 @@
 import { useState } from 'react';
 
-export interface UserToken {
-  token: string;
-}
+export type SessionTokenString = string;
 
-const useToken = (): [string, (token: UserToken) => void] => {
+const useSessionToken = (): [string, (token: SessionTokenString) => void] => {
   const getToken = (): string => {
     const tokenString = localStorage.getItem('token');
-    const userToken: UserToken = tokenString
+    const userToken: SessionTokenString = tokenString
       ? JSON.parse(tokenString)
       : null;
-    return userToken?.token;
+    return userToken;
   };
 
   const [token, setToken] = useState<string>(getToken());
 
-  const saveToken = (token: UserToken): void => {
+  const saveToken = (token: SessionTokenString): void => {
     localStorage.setItem('token', JSON.stringify(token));
-    setToken(token.token);
+    setToken(token);
   };
 
   return [token, saveToken];
 };
 
-export default useToken;
+export default useSessionToken;
