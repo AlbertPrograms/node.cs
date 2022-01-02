@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { UserData } from '../../App';
 
@@ -6,7 +6,12 @@ type HeaderProps = UserData & {
   logout: () => void;
 };
 
-const Header: React.FC<HeaderProps> = ({ name, isAdmin, isTeacher, logout }) => {
+const Header: React.FC<HeaderProps> = ({
+  name,
+  isAdmin,
+  isTeacher,
+  logout,
+}) => {
   return (
     <header
       className="navbar bg-primary bg-gradient mb-4 pt-2 py-md-0"
@@ -17,16 +22,45 @@ const Header: React.FC<HeaderProps> = ({ name, isAdmin, isTeacher, logout }) => 
         aria-label="Main navigation"
       >
         <ul className="navbar-nav flex-row flex-wrap bd-navbar-nav">
-          <li className="nav-item pe-2">
-            <Link className="nav-link text-light" to="/practice">
-              Gyakorlás
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link text-light" to="/exam">
-              Vizsgázás
-            </Link>
-          </li>
+          {!isTeacher && !isAdmin ? (
+            <Fragment>
+              <li className="nav-item pe-2">
+                <Link className="nav-link text-light" to="/practice">
+                  Gyakorlás
+                </Link>
+              </li>
+              <li className="nav-item pe-2">
+                <Link className="nav-link text-light" to="/exam">
+                  Vizsgázás
+                </Link>
+              </li>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <li className="nav-item pe-2">
+                <Link className="nav-link text-light" to="/practice">
+                  Feladatpróba
+                </Link>
+              </li>
+              <li className="nav-item pe-2">
+                <Link className="nav-link text-light" to="/schedule">
+                  Vizsgáztatás
+                </Link>
+              </li>
+              <li className="nav-item pe-2">
+                <Link className="nav-link text-light" to="/tasks">
+                  Feladatok
+                </Link>
+              </li>
+            </Fragment>
+          )}
+          {isAdmin && (
+            <li className="nav-item pe-2">
+              <Link className="nav-link text-light" to="/users">
+                Felhasználók
+              </Link>
+            </li>
+          )}
         </ul>
         <ul className="navbar-nav flex-row flex-wrap bd-navbar-nav">
           <li className="nav-item p-2 pe-3 text-dark">
@@ -38,7 +72,11 @@ const Header: React.FC<HeaderProps> = ({ name, isAdmin, isTeacher, logout }) => 
             </Link>
           </li>
           <li className="nav-item">
-            <Link className="nav-link text-light" to="/" onClick={() => logout()}>
+            <Link
+              className="nav-link text-light"
+              to="/"
+              onClick={() => logout()}
+            >
               Kijelentkezés
             </Link>
           </li>
