@@ -122,7 +122,7 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
 
   // TODO tab -> 2/4 spaces
   return (
-    <div className="container d-flex vh-100">
+    <div className="container d-flex">
       <div className="row w-100 justify-content-center align-self-center">
         <h4>{task ? formatTaskDescription(task) : ''}</h4>
         <form method="post" onSubmit={handleSubmit}>

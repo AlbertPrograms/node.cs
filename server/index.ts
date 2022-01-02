@@ -195,6 +195,18 @@ const assignSession = (user: User): string => {
   return sessionTokenString;
 };
 
+const getUserFromSessionTokenString = (tokenString: string): User => {
+  return sessions.find((session) => session.session === tokenString)?.user;
+}
+
+const removeSession = (tokenString: string): void => {
+  const sessionIndex = sessions.findIndex(
+    (sessionToken) => sessionToken.session === tokenString
+  );
+
+  sessions.splice(sessionIndex, 1);
+}
+
 const validateSessionTokenString = (tokenString: string): boolean => {
   const sessionIndex = sessions.findIndex(
     (sessionToken) => sessionToken.session === tokenString
@@ -240,3 +252,32 @@ app.post('/validate-token', (req, res) => {
   const valid = validateSessionTokenString(sessionTokenString);
   res.status(valid ? 200 : 401).send();
 });
+
+app.post('/logout', (req, res) => {
+  const { sessionTokenString } = req.body;
+
+  const valid = validateSessionTokenString(sessionTokenString);
+
+  if (valid) {
+    removeSession(sessionTokenString);
+  }
+
+  res.status(valid ? 200 : 401).send();
+});
+
+app.post('/get-user-data', (req, res) => {
+  const { sessionTokenString } = req.body;
+
+  const valid = validateSessionTokenString(sessionTokenString);
+  if (!valid) {
+    res.status(401).send();
+    return;
+  }
+
+  const user = getUserFromSessionTokenString(sessionTokenString);
+  res.send({
+    name: user.Name,
+    isAdmin: user.isAdmin(),
+    isTeacher: user.isTeacher(),
+  })
+})
