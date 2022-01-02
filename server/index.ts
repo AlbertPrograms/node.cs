@@ -197,7 +197,7 @@ const assignSession = (user: User): string => {
 
 const getUserFromSessionTokenString = (tokenString: string): User => {
   return sessions.find((session) => session.session === tokenString)?.user;
-}
+};
 
 const removeSession = (tokenString: string): void => {
   const sessionIndex = sessions.findIndex(
@@ -205,7 +205,7 @@ const removeSession = (tokenString: string): void => {
   );
 
   sessions.splice(sessionIndex, 1);
-}
+};
 
 const validateSessionTokenString = (tokenString: string): boolean => {
   const sessionIndex = sessions.findIndex(
@@ -279,5 +279,16 @@ app.post('/get-user-data', (req, res) => {
     name: user.Name,
     isAdmin: user.isAdmin(),
     isTeacher: user.isTeacher(),
-  })
-})
+  });
+});
+
+// Check for expired session tokens every minute and delete them if they exist
+setInterval(() => {
+  const currentTime = new Date().getTime();
+
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    if (sessions[i].expiryTime < currentTime) {
+      sessions.splice(i, 1);
+    }
+  }
+}, 60000);

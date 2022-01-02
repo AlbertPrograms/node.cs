@@ -24,21 +24,19 @@ const getUserData = (token: SessionTokenString): Promise<Response> =>
 // Validates token from backend and empties it if it's invalid
 const validateToken = (
   token: SessionTokenString,
-  setToken: (token: SessionTokenString) => void
-): void => {
+  setTokenValid: (tokenValid: boolean) => void
+): Promise<void> => {
   if (!token) {
-    return; // Do nothing if token is unset or empty
+    setTokenValid(false);
   }
 
-  fetch('/validate-token', {
+  return fetch('/validate-token', {
     method: 'POST',
     body: JSON.stringify({ sessionTokenString: token }),
     headers: { 'Content-Type': 'application/json' },
   })
     .then((res) => {
-      if (res.status !== 200) {
-        setToken(''); // Empty token
-      }
+      setTokenValid(res.status === 200);
     })
     .catch((e) => {
       console.error(e);
@@ -56,20 +54,30 @@ const App: React.FC = () => {
   const [tokenValid, setTokenValid] = useState(false);
   const [userData, setUserData] = useState({ ...defaultUserData });
 
+  // Check regularly for token validity
   useEffect(() => {
-    console.log('useEffect');
+    let interval: number;
 
-    const validate = () => validateToken(token, setToken);
+    const validate = () => {
+      validateToken(token, setTokenValid).then(() => {
+        if (!tokenValid) {
+          // Stop checking once returned invalid until the token doesn't change
+          window.clearInterval(interval);
+        }
+      });
+    };
 
     validate();
 
-    const interval = setInterval(validate, 10000); // Validate every 10s
+    // Validate every 10s
+    interval = window.setInterval(validate, 10000);
 
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
     };
-  }, []);
+  }, [token, tokenValid]);
 
+  // Get the user's data on a token change
   useEffect(() => {
     if (token) {
       getUserData(token)
@@ -80,7 +88,7 @@ const App: React.FC = () => {
     }
   }, [token]);
 
-  if (!token) {
+  if (!tokenValid) {
     return <Login setToken={setToken} />;
   }
 
