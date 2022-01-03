@@ -27,7 +27,6 @@ const Header: React.FC<HeaderProps> = ({
     className: getLinkClass(to === active),
     to: `/${to}`,
     onClick: () => {
-      console.log(active);
       setActive(to);
     },
   });

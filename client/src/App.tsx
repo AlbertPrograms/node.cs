@@ -116,20 +116,14 @@ const App: React.FC = () => {
       <div className="vw-100 vh-100">
         <Header {...{ ...userData, logout }} />
         <Routes>
-          <Route path="/" element={<Editor mode={EditorModes.PRACTICE} />}>
-            <Route
-              path="/practice"
-              element={<Editor mode={EditorModes.PRACTICE} />}
-            />
-            <Route path="/exam" element={<Editor mode={EditorModes.EXAM} />} />
-            {userData.isAdmin ||
-              (userData.isTeacher && (
-                <Route
-                  path="/tasks"
-                  element={<Tasks />}
-                />
-              ))}
-          </Route>
+          <Route
+            path="/practice"
+            element={<Editor mode={EditorModes.PRACTICE} />}
+          />
+          <Route path="/exam" element={<Editor mode={EditorModes.EXAM} />} />
+          {(userData.isAdmin || userData.isTeacher) && (
+            <Route path="/tasks" element={<Tasks token={token} />} />
+          )}
         </Routes>
       </div>
     </BrowserRouter>

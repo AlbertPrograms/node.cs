@@ -199,6 +199,15 @@ const getUserFromSessionTokenString = (tokenString: string): User => {
   return sessions.find((session) => session.session === tokenString)?.user;
 };
 
+const isTeacherOrAdminFromSessionTokenString = (tokenString: string): boolean => {
+  const user = getUserFromSessionTokenString(tokenString);
+  return user?.isTeacher() || user?.isAdmin();
+}
+
+const isAdminFromSessionTokenString = (tokenString: string): boolean => {
+  return getUserFromSessionTokenString(tokenString)?.isAdmin();
+}
+
 const removeSession = (tokenString: string): void => {
   const sessionIndex = sessions.findIndex(
     (sessionToken) => sessionToken.session === tokenString
@@ -228,7 +237,7 @@ const validateSessionTokenString = (tokenString: string): boolean => {
 
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = userTable.find({ name: username });
+  const user = userTable.find({ username });
 
   if (!user) {
     res.status(401).send();
@@ -280,6 +289,24 @@ app.post('/get-user-data', (req, res) => {
     isAdmin: user.isAdmin(),
     isTeacher: user.isTeacher(),
   });
+});
+
+app.post('/get-tasks', async (req, res) => {
+  const { sessionTokenString } = req.body;
+
+  const valid = validateSessionTokenString(sessionTokenString);
+  if (!valid) {
+    res.status(401).send();
+    return;
+  }
+
+  const isTeacherOrAdmin = isTeacherOrAdminFromSessionTokenString(sessionTokenString);
+  if (!isTeacherOrAdmin) {
+    res.status(401).send();
+    return;
+  }
+
+  res.send(await taskTable.get());
 });
 
 // Check for expired session tokens every minute and delete them if they exist
