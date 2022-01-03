@@ -1,6 +1,7 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { UserData } from '../../App';
+import './Header.css';
 
 type HeaderProps = UserData & {
   logout: () => void;
@@ -12,6 +13,25 @@ const Header: React.FC<HeaderProps> = ({
   isTeacher,
   logout,
 }) => {
+  const [active, setActive] = useState<string>();
+
+  useEffect(() => {
+    const splitUrl = window.location.href.split('/');
+    setActive(splitUrl[splitUrl.length - 1]);
+  }, []);
+
+  const getLinkClass = (active: boolean) =>
+    active ? 'nav-link active' : 'nav-link';
+
+  const getLinkAttributes = (to: string) => ({
+    className: getLinkClass(to === active),
+    to: `/${to}`,
+    onClick: () => {
+      console.log(active);
+      setActive(to);
+    },
+  });
+
   return (
     <header
       className="navbar bg-primary bg-gradient mb-4 pt-2 py-md-0"
@@ -25,12 +45,12 @@ const Header: React.FC<HeaderProps> = ({
           {!isTeacher && !isAdmin ? (
             <Fragment>
               <li className="nav-item pe-2">
-                <Link className="nav-link text-light" to="/practice">
+                <Link {...getLinkAttributes('practice')}>
                   Gyakorlás
                 </Link>
               </li>
               <li className="nav-item pe-2">
-                <Link className="nav-link text-light" to="/exam">
+                <Link {...getLinkAttributes('exam')}>
                   Vizsgázás
                 </Link>
               </li>
@@ -38,17 +58,17 @@ const Header: React.FC<HeaderProps> = ({
           ) : (
             <Fragment>
               <li className="nav-item pe-2">
-                <Link className="nav-link text-light" to="/practice">
+                <Link {...getLinkAttributes('practice')}>
                   Feladatpróba
                 </Link>
               </li>
               <li className="nav-item pe-2">
-                <Link className="nav-link text-light" to="/schedule">
+                <Link {...getLinkAttributes('schedule')}>
                   Vizsgáztatás
                 </Link>
               </li>
               <li className="nav-item pe-2">
-                <Link className="nav-link text-light" to="/tasks">
+                <Link {...getLinkAttributes('tasks')}>
                   Feladatok
                 </Link>
               </li>
@@ -56,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({
           )}
           {isAdmin && (
             <li className="nav-item pe-2">
-              <Link className="nav-link text-light" to="/users">
+              <Link {...getLinkAttributes('users')}>
                 Felhasználók
               </Link>
             </li>
@@ -67,16 +87,12 @@ const Header: React.FC<HeaderProps> = ({
             {name && <span>Üdv, {name}</span>}
           </li>
           <li className="nav-item pe-2">
-            <Link className="nav-link text-light" to="/profile">
+            <Link {...getLinkAttributes('profile')}>
               Profil
             </Link>
           </li>
           <li className="nav-item">
-            <Link
-              className="nav-link text-light"
-              to="/"
-              onClick={() => logout()}
-            >
+            <Link className="nav-link" to="/" onClick={() => logout()}>
               Kijelentkezés
             </Link>
           </li>
