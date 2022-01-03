@@ -1,14 +1,18 @@
-import { db } from '../db';
 import { User, UserParams } from '../entities/User';
-import { users } from '../data/users';
-import { Knex } from 'knex';
 import { EntityTable, TableField } from './EntityTable';
+import { users } from '../data/users';
 
 const tableFields: TableField<UserParams>[] = [
   {
-    name: 'name',
+    name: 'username',
     type: 'string',
     primary: true,
+    notNullable: true,
+  },
+  {
+    name: 'name',
+    type: 'string',
+    notNullable: true,
   },
   {
     name: 'email',
@@ -17,16 +21,19 @@ const tableFields: TableField<UserParams>[] = [
   {
     name: 'password',
     type: 'string',
+    notNullable: true,
   },
   {
     name: 'admin',
     type: 'boolean',
+    notNullable: true,
   },
   {
     name: 'teacher',
     type: 'boolean',
+    notNullable: true,
   },
-]
+];
 
 export class UserTable extends EntityTable<UserParams, User> {
   protected tableName = 'user';

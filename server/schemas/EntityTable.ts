@@ -27,7 +27,7 @@ export class EntityTable<
   protected static instance: EntityTable<any, Entity>;
   protected entity: EntityInterface<U>;
   protected tableFields: TableField<U>[];
-  protected defaultDataSet: T[];
+  protected defaultDataSet: T[] = [];
 
   protected constructor() {
     this.initTable();
@@ -93,7 +93,7 @@ export class EntityTable<
     db.transaction((trx) => {
       const queries: Knex.QueryBuilder[] = entities.map((entity) => {
         return db(this.tableName)
-          .where('name', entity.name)
+          .where('name', entity[this.PrimaryFieldName])
           .update(() => {
             return this.convertFromEntityToDbParams(entity);
           })
@@ -171,10 +171,10 @@ export class EntityTable<
     await EntityTable.initPromise;
 
     const existing = entities.filter((entity) =>
-      this.entities.some((e) => e.name === entity.name)
+      this.entities.some((e) => e[this.PrimaryFieldName] === entity[this.PrimaryFieldName])
     );
     const newEntities = entities.filter(
-      (entity) => !existing.some((e) => e.name === entity.name)
+      (entity) => !existing.some((e) => e[this.PrimaryFieldName] === entity[this.PrimaryFieldName])
     );
 
     this.update(existing);

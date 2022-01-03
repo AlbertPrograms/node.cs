@@ -2,7 +2,8 @@ import { User, UserParams } from '../entities/User';
 
 const userParams: UserParams[] = [
   {
-    name: 'admin',
+    username: 'admin',
+    name: 'Rendszergazda',
     email: null,
     password: '$2b$10$./uFc4LymMbcwlCEbB0bfezR.aktAMsUyt7HAFRjz/2FzQB1frP3y',
     admin: true,

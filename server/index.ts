@@ -1,10 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import fetch from 'node-fetch';
-import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { UserTable } from './schemas/UserTable';
 import { User } from './entities/User';
+import { TaskTable } from './schemas/TaskTable';
 
 dotenv.config();
 
@@ -18,10 +18,10 @@ if (!compilerAddress) {
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(cookieParser());
 app.listen(port, () => console.log(`Listening on port ${port}`));
 
 const userTable = UserTable.getInstance();
+const taskTable = TaskTable.getInstance();
 
 const init = async (): Promise<void> => {
   if (initialized) {
@@ -64,7 +64,7 @@ interface Task {
   id: number;
   description: string;
   testData?: string[];
-  expectedResults: string[];
+  expectedOutput: string[];
   pointValue: number;
 }
 
@@ -88,7 +88,7 @@ interface SubmitTaskResponse {
 
 interface CodeCompileAndRunRequest {
   code: string;
-  expectedResults: string[];
+  expectedOutput: string[];
   testData?: string[];
 }
 
@@ -100,14 +100,14 @@ const getTaskToken = () => bcrypt.hashSync(new Date().getTime().toString(), 5);
 const tasks: Task[] = [
   {
     description: 'Írassa ki a standard kimenetre, hogy `Hello world!`',
-    expectedResults: ['Hello world!'],
+    expectedOutput: ['Hello world!'],
     pointValue: 1,
   },
   {
     description:
       'Írjon programot, mely az argumentumban megadott sorszámú fibonacci sorozatot írja ki vesszővel és szóközzel elválasztva! Pl. bemenet: `7`, kimenet: `1, 1, 2, 3, 5, 8, 13`',
     testData: ['1', '10', '30'],
-    expectedResults: [
+    expectedOutput: [
       '1',
       '1, 1, 2, 3, 5, 8, 13, 21, 34, 55',
       '1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393, 196418, 317811, 514229, 832040',
@@ -143,7 +143,7 @@ const handleResults = (
   task: Task
 ): SubmitTaskResponse => {
   const success = results.every(
-    (result, index) => result.stdout === task.expectedResults[index]
+    (result, index) => result.stdout === task.expectedOutput[index]
   );
   // TODO handle task completion to user
   return { results, success };
@@ -162,7 +162,7 @@ app.post('/submit-task', async (req, res) => {
   const task = tasks[taskToken.id];
   const codeCompileAndRunRequest: CodeCompileAndRunRequest = {
     code,
-    expectedResults: task.expectedResults,
+    expectedOutput: task.expectedOutput,
     ...(task.testData ? { testData: task.testData } : {}),
   };
   const response = await fetch(`http://${compilerAddress}/compile-and-run`, {

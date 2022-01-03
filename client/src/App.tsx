@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Editor, { EditorModes } from './components/Editor/Editor';
 import Header from './components/Header/Header';
 import Login from './components/Login/Login';
+import Tasks from './components/Tasks/Tasks';
 import useSessionToken, { SessionTokenString } from './util/useSessionToken';
 import './css/bootstrap.min.css';
 import './App.css';
@@ -121,6 +122,13 @@ const App: React.FC = () => {
               element={<Editor mode={EditorModes.PRACTICE} />}
             />
             <Route path="/exam" element={<Editor mode={EditorModes.EXAM} />} />
+            {userData.isAdmin ||
+              (userData.isTeacher && (
+                <Route
+                  path="/tasks"
+                  element={<Tasks />}
+                />
+              ))}
           </Route>
         </Routes>
       </div>
