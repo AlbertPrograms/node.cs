@@ -10,15 +10,28 @@ interface Task {
   pointValue: number;
 }
 
+interface EditorTask {
+  id: string;
+  description: string;
+  testData?: string[];
+  expectedOutput: string[];
+  pointValue: string;
+}
+
 interface TaskParams {
   token: SessionTokenString;
 }
 
+type FormInput = HTMLInputElement | HTMLTextAreaElement;
+
 const Tasks: React.FC<TaskParams> = ({ token }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [editedTasks, setEditedTasks] = useState<Task[]>([]);
+  const [editedTasks, setEditedTasks] = useState<EditorTask[]>([]);
   const [mismatchingArrays, setMismatchingArrays] = useState<Boolean[]>([]);
+  const [numericErrors, setNumericErrors] = useState<Boolean[]>([]);
+  const [lastEditedElement, setLastEditedElement] = useState<FormInput>();
 
+  // Task getter
   useEffect(() => {
     fetch('/get-tasks', {
       method: 'POST',
@@ -29,18 +42,31 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
       .then(setTasks);
   }, [token]);
 
+  // Edited task mapping
   useEffect(() => {
-    setEditedTasks(tasks);
+    setEditedTasks(
+      tasks.map((task) => ({
+        ...task,
+        id: `${task.id}`,
+        pointValue: `${task.pointValue}`,
+      }))
+    );
   }, [tasks]);
 
+  // Error mapping
   useEffect(() => {
     setMismatchingArrays(
       editedTasks.map(
         (task) => task.expectedOutput.length !== (task.testData?.length ?? 1)
       )
     );
+
+    setNumericErrors(
+      editedTasks.map((task) => !/[0-9]+/.test(task.pointValue))
+    );
   }, [editedTasks]);
 
+  // Empty line removal
   useEffect(() => {
     if (
       !editedTasks.some(
@@ -52,6 +78,9 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
       // Do nothing if there's no empty element in any array of any of the tasks
       return;
     }
+
+    const elemToSelect = (lastEditedElement?.previousElementSibling ?? lastEditedElement?.nextElementSibling) as FormInput;
+    elemToSelect.focus();
 
     const newEditedTasks = editedTasks.map((task) => {
       let testData = task.testData;
@@ -79,8 +108,10 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
   const handleChange =
     (taskId: number, field: keyof Task, fieldId?: number) =>
     (e: ChangeEvent) => {
-      const elem = e.target as HTMLInputElement | HTMLTextAreaElement;
+      const elem = e.target as FormInput;
       const newValue = elem.value;
+
+      setLastEditedElement(elem);
 
       if (!Array.isArray(editedTasks)) {
         return;
@@ -98,7 +129,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     };
 
   const addEntry = (taskId: number, field: keyof Task) => (e: ChangeEvent) => {
-    const elem = e.target as HTMLInputElement | HTMLTextAreaElement;
+    const elem = e.target as FormInput;
     const newValue = elem.value;
 
     if (!Array.isArray(editedTasks)) {
@@ -114,6 +145,14 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     newEditedTasks[taskId][field].push(newValue);
 
     setEditedTasks(newEditedTasks);
+
+    window.setTimeout(() => {
+      const previousInputOrTextarea = e.target.previousElementSibling as
+        | HTMLInputElement
+        | HTMLTextAreaElement;
+      previousInputOrTextarea.focus();
+      previousInputOrTextarea.setSelectionRange(1, 1);
+    }, 0);
   };
 
   return (
@@ -126,7 +165,9 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                 Feladat #{task.id}
               </div>
               <div className="card-body">
-                <label className="text-light text-center">Feladatleírás</label>
+                <label className="text-light text-center mb-2">
+                  Feladatleírás
+                </label>
                 <textarea
                   className="form-control bg-dark text-light"
                   value={task.description}
@@ -134,11 +175,13 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   onChange={handleChange(index, 'description')}
                 />
 
-                <label className="text-light text-center">Tesztadatok</label>
+                <label className="text-light text-center my-2">
+                  Tesztadatok
+                </label>
                 {task.testData?.map((testData, tdIndex) => (
                   <input
-                    key={`${testData} ${tdIndex}`}
-                    className="form-control bg-dark text-light"
+                    key={`${tdIndex}`}
+                    className="form-control bg-dark text-light mb-2"
                     value={testData}
                     onChange={handleChange(index, 'testData', tdIndex)}
                   />
@@ -150,13 +193,13 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   onChange={addEntry(index, 'testData')}
                 />
 
-                <label className="text-light text-center">
+                <label className="text-light text-center my-2">
                   Elvárt kimenetek
                 </label>
                 {task.expectedOutput.map((expectedOutput, eoIndex) => (
                   <textarea
-                    key={`${expectedOutput} ${eoIndex}`}
-                    className="form-control bg-dark text-light"
+                    key={`${eoIndex}`}
+                    className="form-control bg-dark text-light mb-2"
                     value={expectedOutput}
                     {...setAutosize()}
                     onChange={handleChange(index, 'expectedOutput', eoIndex)}
@@ -170,19 +213,25 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                 />
 
                 {mismatchingArrays[index] && (
-                  <p className="text-danger">
+                  <p className="text-danger py-2 m-0">
                     Az elvárt kimenetek hossza meg kell egyezzen a tesztadatok
                     számával, vagy ilyen híján 1-gyel.
                   </p>
                 )}
 
-                <label className="text-light text-center">Pontérték</label>
+                <label className="text-light text-center my-2">Pontérték</label>
                 <input
                   className="form-control bg-dark text-light"
                   value={task.pointValue}
                   onChange={handleChange(index, 'pointValue')}
                   type="number"
                 />
+
+                {numericErrors[index] && (
+                  <p className="text-danger py-2 m-0">
+                    A pontérték csak számot tartalmazhat.
+                  </p>
+                )}
               </div>
             </div>
           </div>
