@@ -109,7 +109,7 @@ export class EntityTable<
     for (const field of this.tableFields) {
       const name = field.name;
       if (field.multi) {
-        newParams[name] = (params[name] as string).split(
+        newParams[name] = (params[name] as string)?.split(
           dbArraySeparatorString
         ) as unknown as U[keyof U];
       } else {
@@ -125,7 +125,7 @@ export class EntityTable<
     for (const field of this.tableFields) {
       const name = field.name;
       if (field.multi) {
-        params[name] = (entity.getParams()[name] as string[]).join(
+        params[name] = (entity.getParams()[name] as string[])?.join(
           dbArraySeparatorString
         ) as unknown as U[keyof U];
       } else {
@@ -141,7 +141,7 @@ export class EntityTable<
 
     db.batchInsert(
       this.tableName,
-      /*@ts-ignore*/
+      /*@ts-ignore*/ // TODO
       entities.map((entity) => this.convertFromEntityToDbParams(entity)),
       50
     );
@@ -171,10 +171,15 @@ export class EntityTable<
     await EntityTable.initPromise;
 
     const existing = entities.filter((entity) =>
-      this.entities.some((e) => e[this.PrimaryFieldName] === entity[this.PrimaryFieldName])
+      this.entities.some(
+        (e) => e[this.PrimaryFieldName] === entity[this.PrimaryFieldName]
+      )
     );
     const newEntities = entities.filter(
-      (entity) => !existing.some((e) => e[this.PrimaryFieldName] === entity[this.PrimaryFieldName])
+      (entity) =>
+        !existing.some(
+          (e) => e[this.PrimaryFieldName] === entity[this.PrimaryFieldName]
+        )
     );
 
     this.update(existing);

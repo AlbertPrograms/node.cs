@@ -17,11 +17,13 @@ const tableFields: TableField<TaskParams>[] = [
   {
     name: 'testData',
     type: 'string',
+    multi: true,
   },
   {
     name: 'expectedOutput',
     type: 'boolean',
     notNullable: true,
+    multi: true,
   },
   {
     name: 'pointValue',

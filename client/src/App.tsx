@@ -113,18 +113,22 @@ const App: React.FC = () => {
 
   return (
     <BrowserRouter>
-      <div className="vw-100 vh-100">
+      <div className="w-100 vh-100">
         <Header {...{ ...userData, logout }} />
-        <Routes>
-          <Route
-            path="/practice"
-            element={<Editor mode={EditorModes.PRACTICE} />}
-          />
-          <Route path="/exam" element={<Editor mode={EditorModes.EXAM} />} />
-          {(userData.isAdmin || userData.isTeacher) && (
-            <Route path="/tasks" element={<Tasks token={token} />} />
-          )}
-        </Routes>
+        <div className="content-wrapper">
+          <div className="content p-4 w-100 h-100">
+            <Routes>
+              <Route
+                path="/practice"
+                element={<Editor mode={EditorModes.PRACTICE} />}
+              />
+              <Route path="/exam" element={<Editor mode={EditorModes.EXAM} />} />
+              {(userData.isAdmin || userData.isTeacher) && (
+                <Route path="/tasks" element={<Tasks token={token} />} />
+              )}
+            </Routes>
+          </div>
+        </div>
       </div>
     </BrowserRouter>
   );

@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header
-      className="navbar bg-primary bg-gradient mb-4 pt-2 py-md-0"
+      className="navbar bg-primary pt-2 py-md-0"
       id="header"
     >
       <nav

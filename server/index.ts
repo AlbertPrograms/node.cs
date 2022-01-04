@@ -199,14 +199,16 @@ const getUserFromSessionTokenString = (tokenString: string): User => {
   return sessions.find((session) => session.session === tokenString)?.user;
 };
 
-const isTeacherOrAdminFromSessionTokenString = (tokenString: string): boolean => {
+const isTeacherOrAdminFromSessionTokenString = (
+  tokenString: string
+): boolean => {
   const user = getUserFromSessionTokenString(tokenString);
   return user?.isTeacher() || user?.isAdmin();
-}
+};
 
 const isAdminFromSessionTokenString = (tokenString: string): boolean => {
   return getUserFromSessionTokenString(tokenString)?.isAdmin();
-}
+};
 
 const removeSession = (tokenString: string): void => {
   const sessionIndex = sessions.findIndex(
@@ -300,13 +302,15 @@ app.post('/get-tasks', async (req, res) => {
     return;
   }
 
-  const isTeacherOrAdmin = isTeacherOrAdminFromSessionTokenString(sessionTokenString);
+  const isTeacherOrAdmin =
+    isTeacherOrAdminFromSessionTokenString(sessionTokenString);
   if (!isTeacherOrAdmin) {
     res.status(401).send();
     return;
   }
 
-  res.send(await taskTable.get());
+  // TODO solve this
+  res.send((await taskTable.get()).map((task) => task.getParams()));
 });
 
 // Check for expired session tokens every minute and delete them if they exist
