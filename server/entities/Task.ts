@@ -6,6 +6,7 @@ export interface TaskParams extends EntityParams {
   testData?: string[];
   expectedOutput: string[];
   pointValue: number;
+  practicable: boolean;
 }
 
 export class Task extends Entity<TaskParams> {
@@ -27,5 +28,9 @@ export class Task extends Entity<TaskParams> {
 
   get PointValue() {
     return this.params.pointValue;
+  }
+
+  get Practicable() {
+    return this.params.practicable;
   }
 }

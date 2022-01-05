@@ -8,6 +8,7 @@ interface Task {
   testData?: string[];
   expectedOutput: string[];
   pointValue: number;
+  practicable: boolean;
 }
 
 interface EditorTask {
@@ -16,6 +17,7 @@ interface EditorTask {
   testData?: string[];
   expectedOutput: string[];
   pointValue: string;
+  practicable: boolean;
   dirty: boolean;
 }
 
@@ -188,6 +190,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     description: '',
     expectedOutput: [],
     pointValue: '',
+    practicable: false,
     dirty: true,
   });
 
