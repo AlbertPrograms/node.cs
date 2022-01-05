@@ -294,7 +294,6 @@ app.post('/delete-task', async (req, res) => {
     return;
   }
 
-  console.log(taskId);
   const task = taskTable.find({ id: taskId });
   if (!task) {
     res.status(404).send();
@@ -302,7 +301,7 @@ app.post('/delete-task', async (req, res) => {
   }
 
   taskTable
-    .delete(taskId)
+    .delete({ id: taskId })
     .then(() => res.status(200).send())
     .catch((e) => res.status(500).send(e));
 });
