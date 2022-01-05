@@ -117,11 +117,11 @@ export class EntityTable<
       if (field.multi) {
         // String conversion necessary as knex/sqlite will
         // convert to number if the value contains digits only
-        newParams[name] =
-          ![null, undefined].includes(params[name]) &&
-          (`${params[name]}`?.split(
+        if (![null, undefined].includes(params[name])) {
+          newParams[name] = `${params[name]}`?.split(
             dbArraySeparatorString
-          ) as unknown as U[keyof U]);
+          ) as unknown as U[keyof U];
+        }
       } else {
         newParams[name] = params[name];
       }
@@ -200,9 +200,7 @@ export class EntityTable<
     this.add(newEntities);
   }
 
-  async delete(
-    searchParams: Record<keyof U, EntityValueType>
-  ): Promise<void> {
+  async delete(searchParams: Record<keyof U, EntityValueType>): Promise<void> {
     const index = this.entities.findIndex((entity) =>
       entity.match(searchParams)
     );
@@ -210,7 +208,6 @@ export class EntityTable<
       this.entities[index].getParams()[this.PrimaryFieldName];
 
     this.entities.splice(index, 1);
-
     db(this.tableName)
       .where(this.PrimaryFieldName as string, primaryFieldValue)
       .del();
