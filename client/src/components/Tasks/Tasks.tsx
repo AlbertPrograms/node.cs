@@ -1,4 +1,4 @@
-import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import { SessionTokenString } from '../../util/useSessionToken';
 import autosize from 'autosize';
 

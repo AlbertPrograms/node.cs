@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { UserTable } from './schemas/UserTable';
 import { User } from './entities/User';
 import { TaskTable } from './schemas/TaskTable';
+import { Task, TaskParams } from './entities/Task';
 
 dotenv.config();
 
@@ -54,19 +55,11 @@ interface SessionToken {
 }
 
 interface TaskToken {
-  id: Task['id'];
+  id: Task['Id'];
   token: string;
 }
 
 type TaskCategory = '' | '';
-
-interface Task {
-  id: number;
-  description: string;
-  testData?: string[];
-  expectedOutput: string[];
-  pointValue: number;
-}
 
 interface ExecutionResult {
   code: number;
@@ -96,26 +89,6 @@ const taskTokens: TaskToken[] = [];
 
 const getTaskToken = () => bcrypt.hashSync(new Date().getTime().toString(), 5);
 
-// TODO type, separate file (maybe from input json?)
-const tasks: Task[] = [
-  {
-    description: 'Írassa ki a standard kimenetre, hogy `Hello world!`',
-    expectedOutput: ['Hello world!'],
-    pointValue: 1,
-  },
-  {
-    description:
-      'Írjon programot, mely az argumentumban megadott sorszámú fibonacci sorozatot írja ki vesszővel és szóközzel elválasztva! Pl. bemenet: `7`, kimenet: `1, 1, 2, 3, 5, 8, 13`',
-    testData: ['1', '10', '30'],
-    expectedOutput: [
-      '1',
-      '1, 1, 2, 3, 5, 8, 13, 21, 34, 55',
-      '1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393, 196418, 317811, 514229, 832040',
-    ],
-    pointValue: 3,
-  },
-].map((task, index) => ({ ...task, id: index }));
-
 app.use(async (_, __, next) => {
   await initPromise;
   next();
@@ -126,14 +99,16 @@ app.get('/get-task', (_, res) => {
   // TEMP
   const taskId = 1;
 
+  const task = taskTable.find({ id: 1 });
+
   const token = getTaskToken();
   taskTokens.push({
-    id: tasks[taskId].id,
+    id: task.Id,
     token,
   });
 
   res.send({
-    task: tasks[taskId].description,
+    task: task.Description,
     token,
   });
 });
@@ -159,11 +134,15 @@ app.post('/submit-task', async (req, res) => {
     return;
   }
 
-  const task = tasks[taskToken.id];
+  const task = taskTable.find({ id: taskToken.id });
+  if (!task) {
+    res.status(404).send();
+  }
+
   const codeCompileAndRunRequest: CodeCompileAndRunRequest = {
     code,
     expectedOutput: task.expectedOutput,
-    ...(task.testData ? { testData: task.testData } : {}),
+    ...(task.TestData ? { testData: task.TestData } : {}),
   };
   const response = await fetch(`http://${compilerAddress}/compile-and-run`, {
     method: 'POST',
@@ -281,7 +260,7 @@ app.post('/get-tasks', async (req, res) => {
   const { sessionTokenString } = req.body;
 
   const user = getUserFromSessionTokenString(sessionTokenString);
-  if (!user || !user.isTeacher() && !user.isAdmin()) {
+  if (!user || (!user.isTeacher() && !user.isAdmin())) {
     res.status(401).send();
     return;
   }
@@ -291,15 +270,18 @@ app.post('/get-tasks', async (req, res) => {
 });
 
 app.post('/save-tasks', async (req, res) => {
-  const { sessionTokenString } = req.body;
+  const { sessionTokenString, tasks } = req.body;
 
   const user = getUserFromSessionTokenString(sessionTokenString);
-  if (!user || !user.isTeacher() && !user.isAdmin()) {
+  if (!user || (!user.isTeacher() && !user.isAdmin())) {
     res.status(401).send();
     return;
   }
 
-  res.status(200).send();
+  taskTable
+    .save(tasks.map((task: TaskParams) => new Task(task)))
+    .then(() => res.status(200).send())
+    .catch((e) => res.status(500).send(e));
 });
 
 // Check for expired session tokens every minute and delete them if they exist
