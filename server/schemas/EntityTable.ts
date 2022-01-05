@@ -79,8 +79,11 @@ export class EntityTable<
   private get PrimaryField() {
     return this.PrimaryFields?.[0];
   }
-  private get PrimaryFieldName() {
+  private get PrimaryFieldKey() {
     return this.PrimaryField.name;
+  }
+  private get PrimaryFieldName() {
+    return `${this.PrimaryFieldKey}`;
   }
 
   private async update(entities: T[]): Promise<void> {
@@ -88,8 +91,8 @@ export class EntityTable<
       this.entities
         .find((e) => {
           return (
-            e.getParams()[this.PrimaryFieldName] ===
-            entity.getParams()[this.PrimaryFieldName]
+            e.getParams()[this.PrimaryFieldKey] ===
+            entity.getParams()[this.PrimaryFieldKey]
           );
         })
         .set(entity);
@@ -99,8 +102,8 @@ export class EntityTable<
       const queries: Knex.QueryBuilder[] = entities.map((entity) => {
         return db(this.tableName)
           .where(
-            this.PrimaryFieldName as string,
-            entity.getParams()[this.PrimaryFieldName]
+            this.PrimaryFieldName,
+            entity.getParams()[this.PrimaryFieldKey]
           )
           .update(this.convertFromEntityToDbParams(entity))
           .transacting(trx);
@@ -183,16 +186,16 @@ export class EntityTable<
     const existing = entities.filter((entity) =>
       this.entities.some(
         (e) =>
-          e.getParams()[this.PrimaryFieldName] ===
-          entity.getParams()[this.PrimaryFieldName]
+          e.getParams()[this.PrimaryFieldKey] ===
+          entity.getParams()[this.PrimaryFieldKey]
       )
     );
     const newEntities = entities.filter(
       (entity) =>
         !existing.some(
           (e) =>
-            e.getParams()[this.PrimaryFieldName] ===
-            entity.getParams()[this.PrimaryFieldName]
+            e.getParams()[this.PrimaryFieldKey] ===
+            entity.getParams()[this.PrimaryFieldKey]
         )
     );
 
@@ -205,11 +208,11 @@ export class EntityTable<
       entity.match(searchParams)
     );
     const primaryFieldValue =
-      this.entities[index].getParams()[this.PrimaryFieldName];
+      this.entities[index].getParams()[this.PrimaryFieldKey];
 
     this.entities.splice(index, 1);
-    db(this.tableName)
-      .where(this.PrimaryFieldName as string, primaryFieldValue)
+    await db(this.tableName)
+      .where(this.PrimaryFieldName, primaryFieldValue)
       .del();
   }
 
