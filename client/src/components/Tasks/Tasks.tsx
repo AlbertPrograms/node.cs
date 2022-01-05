@@ -1,5 +1,6 @@
 import React, { ChangeEvent, useEffect, useState } from 'react';
 import { SessionTokenString } from '../../util/useSessionToken';
+import { Navigate } from 'react-router-dom';
 import autosize from 'autosize';
 
 interface Task {
@@ -42,6 +43,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
   const [lastEditedElement, setLastEditedElement] = useState<FormInput>();
   const [refreshNeeded, setRefreshNeeded] = useState(true);
   const [canSave, setCanSave] = useState(false);
+  const [taskTest, setTaskTest] = useState(-1);
 
   // Task getter
   useEffect(() => {
@@ -215,7 +217,10 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
 
     fetch('/delete-task', {
       method: 'POST',
-      body: JSON.stringify({ sessionTokenString: token, taskId: parseInt(taskId) }),
+      body: JSON.stringify({
+        sessionTokenString: token,
+        taskId: parseInt(taskId),
+      }),
       headers: { 'Content-Type': 'application/json' },
     })
       .then((res) => {
@@ -266,6 +271,14 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
 
   return (
     <div className="row w-100">
+      <div className="col-6 col-md-4 col-lg-3 p-2">
+        <button
+          className="btn btn-dark border-secondary me-2"
+          onClick={() => addTask()}
+        >
+          Új feladat
+        </button>
+      </div>
       {editedTasks.map((task, index) => {
         return (
           <div className="col-6 col-md-4 col-lg-3" key={task.id}>
@@ -278,10 +291,15 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                 <div>
                   <button
                     className="btn btn-dark border-secondary me-2"
-                    onClick={() => addTask(index)}
+                    onClick={() => setTaskTest(index)}
                   >
-                    Új feladat
+                    Feladatpróba
                   </button>
+                  {taskTest === index && (
+                    <Navigate
+                      to={{ pathname: '/task-test', search: `taskId=${index}` }}
+                    ></Navigate>
+                  )}
                   <button
                     className="btn btn-dark border-secondary text-danger"
                     onClick={() => deleteTask(task.id)}
@@ -307,7 +325,8 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                 )}
 
                 <label className="text-light text-center my-2">
-                  Tesztadatok
+                  Tesztadatok{' '}
+                  <small className="text-secondary">(opcionális)</small>
                 </label>
                 {task.testData?.map((testData, tdIndex) => (
                   <input
@@ -366,14 +385,6 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
           </div>
         );
       })}
-      <div className="col-6 col-md-4 col-lg-3 p-2">
-        <button
-          className="btn btn-dark border-secondary me-2"
-          onClick={() => addTask()}
-        >
-          Új feladat
-        </button>
-      </div>
 
       {canSave && (
         <div className="row fixed-bottom p-2">

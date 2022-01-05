@@ -6,15 +6,19 @@ import React, {
   useEffect,
   ReactElement,
 } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { SessionTokenString } from '../../util/useSessionToken';
 import './Editor.css';
 
 export const enum EditorModes {
   EXAM,
   PRACTICE,
+  TESTING,
 }
 
 interface EditorParams {
   mode: EditorModes;
+  token: SessionTokenString;
 }
 
 interface TaskResponse {
@@ -35,13 +39,16 @@ interface SubmitResponse {
   success: boolean;
 }
 
-const Editor: React.FC<EditorParams> = ({ mode }) => {
+const Editor: React.FC<EditorParams> = ({ mode, token }) => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState<string>();
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
   const [height, setHeight] = useState(window.innerHeight);
+  const [taskToken, setTaskToken] = useState<string>();
+
+  const [searchParams] = useSearchParams();
+
   const rowStyle = { height: `${height - 202}px` };
-  let taskToken: string;
 
   useEffect(() => {
     function handleResize() {
@@ -52,12 +59,33 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  fetch('/get-task')
-    .then((res) => res.json())
-    .then((r: TaskResponse) => {
-      setTask(r.task);
-      taskToken = r.token;
-    });
+  useEffect(() => {
+    const taskId = searchParams.get('taskId') as string;
+    fetch('/get-task', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...(token ? { sessionTokenString: token } : {}),
+        ...(taskId ? { taskId: parseInt(taskId) } : {}),
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((res) => {
+        if (res.status !== 200) {
+          throw new Error();
+        }
+
+        return res;
+      })
+      .then((res) => res.json())
+      .then((r: TaskResponse) => {
+        setTask(r.task);
+        setTaskToken(r.token);
+      })
+      .catch((e) => {
+        window.alert('Hiba történt a feladat betöltése közben');
+        console.error(e);
+      });
+  }, [mode, token, searchParams]);
 
   const handleTextareaChange: ChangeEventHandler = (event) => {
     const textarea: HTMLTextAreaElement = event.target as HTMLTextAreaElement;
@@ -79,7 +107,6 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
   // also typed in code! losing this stuff sucks
   const handleSubmit: FormEventHandler = (event) => {
     event.preventDefault();
-    console.log(taskToken);
 
     fetch('/submit-task', {
       method: 'POST',

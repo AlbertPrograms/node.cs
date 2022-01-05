@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import Editor, { EditorModes } from './components/Editor/Editor';
@@ -120,11 +120,17 @@ const App: React.FC = () => {
             <Routes>
               <Route
                 path="/practice"
-                element={<Editor mode={EditorModes.PRACTICE} />}
+                element={<Editor mode={EditorModes.PRACTICE} token={token} />}
               />
-              <Route path="/exam" element={<Editor mode={EditorModes.EXAM} />} />
+              <Route path="/exam" element={<Editor mode={EditorModes.EXAM} token={token} />} />
               {(userData.isAdmin || userData.isTeacher) && (
-                <Route path="/tasks" element={<Tasks token={token} />} />
+                <Fragment>
+                  <Route
+                    path="/task-test"
+                    element={<Editor mode={EditorModes.TESTING} token={token} />}
+                  />
+                  <Route path="/tasks" element={<Tasks token={token} />} />
+                </Fragment>
               )}
             </Routes>
           </div>

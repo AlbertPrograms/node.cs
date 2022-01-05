@@ -95,11 +95,36 @@ app.use(async (_, __, next) => {
 });
 
 // TODO random task assignment based on category and practice mode
-app.get('/get-task', (_, res) => {
-  // TEMP
-  const taskId = 1;
+app.post('/get-task', async (req, res) => {
+  const { sessionTokenString, taskId } = req.body;
+  const user = getUserFromSessionTokenString(sessionTokenString);
+  if (!user) {
+    res.status(403).send();
+    return;
+  }
 
-  const task = taskTable.find({ id: 1 });
+  if (taskId !== undefined && !user.isAdmin() && !user.isTeacher) {
+    res.status(401).send();
+    return;
+  }
+
+  let task;
+
+  if (taskId !== undefined) {
+    task = taskTable.find({ id: taskId });
+    if (!task) {
+      res.status(404).send();
+      return;
+    }
+  } else {
+    const practicableTasks = (await taskTable.get()).filter(
+      (task) => task.Practicable
+    );
+    const randomTaskId = Math.round(
+      Math.random() * (practicableTasks.length - 1)
+    );
+    task = practicableTasks[randomTaskId];
+  }
 
   const token = getTaskToken();
   taskTokens.push({
@@ -117,6 +142,7 @@ const handleResults = (
   results: ExecutionResult[],
   task: Task
 ): SubmitTaskResponse => {
+  console.log(results);
   const success = results.every(
     (result, index) => result.stdout === task.expectedOutput[index]
   );
@@ -126,7 +152,6 @@ const handleResults = (
 
 app.post('/submit-task', async (req, res) => {
   const { code, token }: SubmitTaskRequest = req.body;
-  console.log(code);
   const taskToken = taskTokens.find((tt) => tt.token === token);
 
   if (!taskToken) {
@@ -142,7 +167,7 @@ app.post('/submit-task', async (req, res) => {
   const codeCompileAndRunRequest: CodeCompileAndRunRequest = {
     code,
     expectedOutput: task.expectedOutput,
-    ...(task.TestData ? { testData: task.TestData } : {}),
+    ...(task.TestData?.length ? { testData: task.TestData } : {}),
   };
   const response = await fetch(`http://${compilerAddress}/compile-and-run`, {
     method: 'POST',
@@ -152,16 +177,8 @@ app.post('/submit-task', async (req, res) => {
 
   const results = (await response.json()) as ExecutionResult[];
 
-  console.log(task);
   const submitResponse: SubmitTaskResponse = handleResults(results, task);
   res.send(submitResponse);
-
-  /* if (!response.status.toString().startsWith('2')) {
-    // Provide next task
-    res.status(response.status).send(results);
-  } else {
-    res.status(200).send(results);
-  } */
 });
 
 const sessions: SessionToken[] = [];
@@ -219,7 +236,7 @@ app.post('/login', async (req, res) => {
   }
 
   const sessionTokenString = assignSession(user);
-  res.status(200).send({ sessionTokenString });
+  res.send({ sessionTokenString });
 });
 
 app.post('/validate-token', (req, res) => {
@@ -281,7 +298,7 @@ app.post('/save-tasks', async (req, res) => {
 
   taskTable
     .save(tasks.map((task: TaskParams) => new Task(task)))
-    .then(() => res.status(200).send())
+    .then(() => res.send())
     .catch((e) => res.status(500).send(e));
 });
 
@@ -302,7 +319,7 @@ app.post('/delete-task', async (req, res) => {
 
   taskTable
     .delete({ id: taskId })
-    .then(() => res.status(200).send())
+    .then(() => res.send())
     .catch((e) => res.status(500).send(e));
 });
 
