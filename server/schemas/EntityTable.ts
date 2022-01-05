@@ -84,19 +84,25 @@ export class EntityTable<
   }
 
   private async update(entities: T[]): Promise<void> {
-    this.entities.forEach((entity) => {
+    entities.forEach((entity) => {
       this.entities
-        .find((g) => g[this.PrimaryFieldName] === entity[this.PrimaryFieldName])
+        .find((e) => {
+          return (
+            e.getParams()[this.PrimaryFieldName] ===
+            entity.getParams()[this.PrimaryFieldName]
+          );
+        })
         .set(entity);
     });
 
     db.transaction((trx) => {
       const queries: Knex.QueryBuilder[] = entities.map((entity) => {
         return db(this.tableName)
-          .where('name', entity[this.PrimaryFieldName])
-          .update(() => {
-            return this.convertFromEntityToDbParams(entity);
-          })
+          .where(
+            this.PrimaryFieldName as string,
+            entity.getParams()[this.PrimaryFieldName]
+          )
+          .update(this.convertFromEntityToDbParams(entity))
           .transacting(trx);
       });
 
@@ -109,9 +115,13 @@ export class EntityTable<
     for (const field of this.tableFields) {
       const name = field.name;
       if (field.multi) {
-        newParams[name] = (params[name] as string)?.split(
-          dbArraySeparatorString
-        ) as unknown as U[keyof U];
+        // String conversion necessary as knex/sqlite will
+        // convert to number if the value contains digits only
+        newParams[name] =
+          ![null, undefined].includes(params[name]) &&
+          (`${params[name]}`?.split(
+            dbArraySeparatorString
+          ) as unknown as U[keyof U]);
       } else {
         newParams[name] = params[name];
       }
@@ -172,18 +182,38 @@ export class EntityTable<
 
     const existing = entities.filter((entity) =>
       this.entities.some(
-        (e) => e[this.PrimaryFieldName] === entity[this.PrimaryFieldName]
+        (e) =>
+          e.getParams()[this.PrimaryFieldName] ===
+          entity.getParams()[this.PrimaryFieldName]
       )
     );
     const newEntities = entities.filter(
       (entity) =>
         !existing.some(
-          (e) => e[this.PrimaryFieldName] === entity[this.PrimaryFieldName]
+          (e) =>
+            e.getParams()[this.PrimaryFieldName] ===
+            entity.getParams()[this.PrimaryFieldName]
         )
     );
 
     this.update(existing);
     this.add(newEntities);
+  }
+
+  async delete(
+    searchParams: Record<keyof U, EntityValueType>
+  ): Promise<void> {
+    const index = this.entities.findIndex((entity) =>
+      entity.match(searchParams)
+    );
+    const primaryFieldValue =
+      this.entities[index].getParams()[this.PrimaryFieldName];
+
+    this.entities.splice(index, 1);
+
+    db(this.tableName)
+      .where(this.PrimaryFieldName as string, primaryFieldValue)
+      .del();
   }
 
   find(searchParams: Record<keyof U, EntityValueType>): T {

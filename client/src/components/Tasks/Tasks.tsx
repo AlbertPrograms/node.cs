@@ -35,9 +35,10 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
   const [editedTasks, setEditedTasks] = useState<EditorTask[]>([]);
   const [mismatchingArrays, setMismatchingArrays] = useState<Boolean[]>([]);
   const [numericErrors, setNumericErrors] = useState<Boolean[]>([]);
+  const [emptyDescriptions, setEmptyDescriptions] = useState<Boolean[]>([]);
+  const [errors, setErrors] = useState(false);
   const [lastEditedElement, setLastEditedElement] = useState<FormInput>();
   const [refreshNeeded, setRefreshNeeded] = useState(true);
-  const [removedTasksExist, setRemovedTasksExist] = useState(false);
   const [canSave, setCanSave] = useState(false);
 
   // Task getter
@@ -55,7 +56,6 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
       .then(setTasks)
       .then(() => {
         setRefreshNeeded(false);
-        setRemovedTasksExist(false);
       });
   }, [token, refreshNeeded]);
 
@@ -75,19 +75,26 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
   useEffect(() => {
     setMismatchingArrays(
       editedTasks.map(
-        (task) => task.expectedOutput.length !== (task.testData?.length ?? 1)
+        (task) => task.expectedOutput.length !== (task.testData?.length || 1)
       )
     );
 
     setNumericErrors(
       editedTasks.map((task) => !/[0-9]+/.test(task.pointValue))
     );
+
+    setEmptyDescriptions(editedTasks.map((task) => !task.description.length));
   }, [editedTasks]);
 
   // Dirty calc
   useEffect(() => {
-    setCanSave(editedTasks.some((task) => task.dirty) || removedTasksExist);
-  }, [editedTasks, removedTasksExist]);
+    setCanSave(editedTasks.some((task) => task.dirty));
+  }, [editedTasks]);
+
+  // Error calc
+  useEffect(() => {
+    setErrors(mismatchingArrays.some(Boolean) || numericErrors.some(Boolean));
+  }, [mismatchingArrays, numericErrors, emptyDescriptions]);
 
   // Empty line removal
   useEffect(() => {
@@ -102,9 +109,11 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
       return;
     }
 
-    const elemToSelect = (lastEditedElement?.previousElementSibling ??
-      lastEditedElement?.nextElementSibling) as FormInput;
-    elemToSelect.focus();
+    if (lastEditedElement) {
+      const elemToSelect = (lastEditedElement?.previousElementSibling ??
+        lastEditedElement?.nextElementSibling) as FormInput;
+      elemToSelect.focus();
+    }
 
     const newEditedTasks = editedTasks.map((task) => {
       let testData = task.testData;
@@ -196,20 +205,34 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     setEditedTasks(newEditedTasks);
   };
 
-  const removeTask = (index: number) => {
-    if (!window.confirm(`Biztosan törölni kívánja a ${index}. feladatot?`)) {
+  const deleteTask = (taskId: string) => {
+    if (!window.confirm(`Biztosan törölni kívánja a ${taskId}. feladatot?`)) {
       return;
     }
 
-    const newEditedTasks = JSON.parse(JSON.stringify(editedTasks));
+    fetch('/delete-task', {
+      method: 'POST',
+      body: JSON.stringify({ sessionTokenString: token, taskId: parseInt(taskId) }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((res) => {
+        if (res.status !== 200) {
+          throw new Error();
+        }
 
-    newEditedTasks.splice(index, 1);
-    setRemovedTasksExist(true);
-
-    setEditedTasks(newEditedTasks);
+        setRefreshNeeded(true);
+      })
+      .catch((e) => {
+        window.alert('Hiba történt a törlés közben');
+        console.error(e);
+      });
   };
 
   const save = () => {
+    if (errors) {
+      return;
+    }
+
     const tasksToSave: Task[] = editedTasks.map((editedTask) => ({
       ...editedTask,
       id: parseInt(editedTask.id),
@@ -258,7 +281,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   </button>
                   <button
                     className="btn btn-dark border-secondary text-danger"
-                    onClick={() => removeTask(index)}
+                    onClick={() => deleteTask(task.id)}
                   >
                     Feladat törlése
                   </button>
@@ -274,6 +297,11 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   {...setAutosize()}
                   onChange={handleChange(index, 'description')}
                 />
+                {emptyDescriptions[index] && (
+                  <p className="text-danger py-2 m-0">
+                    A leírás nem lehet üres.
+                  </p>
+                )}
 
                 <label className="text-light text-center my-2">
                   Tesztadatok
@@ -311,7 +339,6 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   placeholder="Új érték hozzáadása"
                   onChange={addEntry(index, 'expectedOutput')}
                 />
-
                 {mismatchingArrays[index] && (
                   <p className="text-danger py-2 m-0">
                     Az elvárt kimenetek hossza meg kell egyezzen a tesztadatok
@@ -326,7 +353,6 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   onChange={handleChange(index, 'pointValue')}
                   type="number"
                 />
-
                 {numericErrors[index] && (
                   <p className="text-danger py-2 m-0">
                     A pontérték csak számot tartalmazhat.
@@ -353,6 +379,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
             <button
               className="btn btn-dark border-success w-100 me-2"
               onClick={() => save()}
+              disabled={errors}
             >
               Mentés
             </button>

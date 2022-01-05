@@ -27,7 +27,7 @@ const tableFields: TableField<TaskParams>[] = [
   },
   {
     name: 'pointValue',
-    type: 'boolean',
+    type: 'integer',
     notNullable: true,
   },
 ];

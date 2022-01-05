@@ -213,7 +213,8 @@ app.post('/login', async (req, res) => {
   const authSuccess = user.authenticate(password);
 
   if (!authSuccess) {
-    res.status(401).send();
+    // Delay to protect from brute force
+    setTimeout(() => res.status(401).send(), 1500);
     return;
   }
 
@@ -280,6 +281,28 @@ app.post('/save-tasks', async (req, res) => {
 
   taskTable
     .save(tasks.map((task: TaskParams) => new Task(task)))
+    .then(() => res.status(200).send())
+    .catch((e) => res.status(500).send(e));
+});
+
+app.post('/delete-task', async (req, res) => {
+  const { sessionTokenString, taskId } = req.body;
+
+  const user = getUserFromSessionTokenString(sessionTokenString);
+  if (!user || (!user.isTeacher() && !user.isAdmin())) {
+    res.status(401).send();
+    return;
+  }
+
+  console.log(taskId);
+  const task = taskTable.find({ id: taskId });
+  if (!task) {
+    res.status(404).send();
+    return;
+  }
+
+  taskTable
+    .delete(taskId)
     .then(() => res.status(200).send())
     .catch((e) => res.status(500).send(e));
 });

@@ -121,6 +121,7 @@ const Editor: React.FC<EditorParams> = ({ mode }) => {
   };
 
   // TODO tab -> 2/4 spaces
+  // TODO select task by id if teach/admin
   return (
     <div className="container d-flex">
       <div className="row w-100 justify-content-center align-self-center">
