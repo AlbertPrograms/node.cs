@@ -59,8 +59,6 @@ interface TaskToken {
   token: string;
 }
 
-type TaskCategory = '' | '';
-
 interface ExecutionResult {
   code: number;
   stdout: string;

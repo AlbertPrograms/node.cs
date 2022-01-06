@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { UserData } from '../../App';
 import './Header.css';
 
@@ -13,18 +13,21 @@ const Header: React.FC<HeaderProps> = ({
   isTeacher,
   logout,
 }) => {
-  const [active, setActive] = useState<string>();
+  const [active, setActive] = useState('');
+  const location = useLocation();
 
   useEffect(() => {
-    const splitUrl = window.location.href.split('/');
-    setActive(splitUrl[splitUrl.length - 1]);
-  }, []);
+    const splitUrl = location.pathname.split('/');
+    setActive(splitUrl[splitUrl.length - 1].split('?')[0]);
+  }, [location]);
 
   const getLinkClass = (active: boolean) =>
     active ? 'nav-link active' : 'nav-link';
 
-  const getLinkAttributes = (to: string) => ({
-    className: getLinkClass(to === active),
+  const getLinkAttributes = (to: string, aliases?: string[]) => ({
+    className: getLinkClass(
+      to === active || (!!aliases && aliases.includes(active))
+    ),
     to: `/${to}`,
     onClick: () => {
       setActive(to);
@@ -32,10 +35,7 @@ const Header: React.FC<HeaderProps> = ({
   });
 
   return (
-    <header
-      className="navbar bg-primary pt-2 py-md-0"
-      id="header"
-    >
+    <header className="navbar bg-primary pt-2 py-md-0" id="header">
       <nav
         className="container-xxl flex-wrap flex-md-nowrap"
         aria-label="Main navigation"
@@ -44,40 +44,28 @@ const Header: React.FC<HeaderProps> = ({
           {!isTeacher && !isAdmin ? (
             <Fragment>
               <li className="nav-item pe-2">
-                <Link {...getLinkAttributes('practice')}>
-                  Gyakorlás
-                </Link>
+                <Link {...getLinkAttributes('practice')}>Gyakorlás</Link>
               </li>
               <li className="nav-item pe-2">
-                <Link {...getLinkAttributes('exam')}>
-                  Vizsgázás
-                </Link>
+                <Link {...getLinkAttributes('exam')}>Vizsgázás</Link>
               </li>
             </Fragment>
           ) : (
             <Fragment>
               <li className="nav-item pe-2">
-                <Link {...getLinkAttributes('practice')}>
-                  Feladatpróba
-                </Link>
+                <Link {...getLinkAttributes('practice', ['task-test'])}>Feladatpróba</Link>
               </li>
               <li className="nav-item pe-2">
-                <Link {...getLinkAttributes('schedule')}>
-                  Vizsgáztatás
-                </Link>
+                <Link {...getLinkAttributes('schedule')}>Vizsgáztatás</Link>
               </li>
               <li className="nav-item pe-2">
-                <Link {...getLinkAttributes('tasks')}>
-                  Feladatok
-                </Link>
+                <Link {...getLinkAttributes('tasks')}>Feladatok</Link>
               </li>
             </Fragment>
           )}
           {isAdmin && (
             <li className="nav-item pe-2">
-              <Link {...getLinkAttributes('users')}>
-                Felhasználók
-              </Link>
+              <Link {...getLinkAttributes('users')}>Felhasználók</Link>
             </li>
           )}
         </ul>
@@ -86,9 +74,7 @@ const Header: React.FC<HeaderProps> = ({
             {name && <span>Üdv, {name}</span>}
           </li>
           <li className="nav-item pe-2">
-            <Link {...getLinkAttributes('profile')}>
-              Profil
-            </Link>
+            <Link {...getLinkAttributes('profile')}>Profil</Link>
           </li>
           <li className="nav-item">
             <Link className="nav-link" to="/" onClick={() => logout()}>
