@@ -1,8 +1,9 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
+import fetch from 'node-fetch';
 import { needsTeacherOrAdmin } from './authRouter';
 import { User } from '../entities/User';
-import { Task, TaskParams } from '../entities/Task';
+import { Task } from '../entities/Task';
 import { TaskTable } from '../schemas/TaskTable';
 
 const router = express.Router();
