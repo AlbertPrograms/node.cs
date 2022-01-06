@@ -172,7 +172,7 @@ router.post('/submit-task', async (req, res) => {
 // Tasklist retrieval
 router.post('/get-tasks', needsTeacherOrAdmin, async (_, res) => {
   // TODO solve this
-  res.send((await taskTable.get()).map((task) => task.getParams()));
+  res.send(await taskTable.getParams());
 });
 
 // Tasklist updating
@@ -180,7 +180,7 @@ router.post('/save-tasks', needsTeacherOrAdmin, async (req, res) => {
   const { tasks } = req.body;
 
   taskTable
-    .save(tasks.map((task: TaskParams) => new Task(task)))
+    .saveParams(tasks)
     .then(() => res.send())
     .catch((e) => res.status(500).send(e));
 });

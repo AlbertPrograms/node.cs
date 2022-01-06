@@ -271,14 +271,6 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
 
   return (
     <div className="row w-100">
-      <div className="col-6 col-md-4 col-lg-3 p-2">
-        <button
-          className="btn btn-dark border-secondary me-2"
-          onClick={() => addTask()}
-        >
-          Új feladat
-        </button>
-      </div>
       {editedTasks.map((task, index) => {
         return (
           <div className="col-6 col-md-4 col-lg-3" key={task.id}>
@@ -409,6 +401,14 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
           <div className="col-2 col-md-3 col-lg-4"></div>
         </div>
       )}
+      <div className="col-6 col-md-4 col-lg-3 p-2">
+        <button
+          className="btn btn-dark border-secondary me-2"
+          onClick={() => addTask()}
+        >
+          Új feladat
+        </button>
+      </div>
     </div>
   );
 };

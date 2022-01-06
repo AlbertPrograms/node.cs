@@ -180,6 +180,12 @@ export class EntityTable<
     return [...this.entities];
   }
 
+  async getParams(): Promise<U[]> {
+    await EntityTable.initPromise;
+
+    return this.entities.map((entity) => entity.getParams());
+  }
+
   async save(entities: T[]): Promise<void> {
     await EntityTable.initPromise;
 
@@ -201,6 +207,14 @@ export class EntityTable<
 
     this.update(existing);
     this.add(newEntities);
+  }
+
+  async saveParams(entityParams: U[]): Promise<void> {
+    return this.save(
+      entityParams.map((params) =>
+        this.entity.createNew(params)
+      ) as unknown as T[]
+    );
   }
 
   async delete(searchParams: Record<keyof U, EntityValueType>): Promise<void> {
