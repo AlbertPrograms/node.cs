@@ -230,7 +230,7 @@ export class EntityTable<
       .del();
   }
 
-  find(searchParams: Record<keyof U, EntityValueType>): T {
+  async find(searchParams: Record<keyof U, EntityValueType>): Promise<T> {
     return this.entities.find((entity) => entity.match(searchParams));
   }
 }

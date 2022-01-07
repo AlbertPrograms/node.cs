@@ -1,12 +1,12 @@
 import React, { ChangeEvent, FormEvent, useState } from 'react';
-import { SessionTokenString } from '../../util/useSessionToken';
+import { TokenString } from '../../util/useToken';
 
 interface LoginProps {
-  setToken: (token: SessionTokenString) => void;
+  setToken: (token: TokenString) => void;
 }
 
 interface LoginResponseBody {
-  sessionTokenString: SessionTokenString;
+  sessionTokenString: TokenString;
 }
 
 const Login: React.FC<LoginProps> = ({ setToken }) => {

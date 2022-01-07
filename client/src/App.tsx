@@ -5,7 +5,7 @@ import Editor, { EditorModes } from './components/Editor/Editor';
 import Header from './components/Header/Header';
 import Login from './components/Login/Login';
 import Tasks from './components/Tasks/Tasks';
-import useSessionToken, { SessionTokenString } from './util/useSessionToken';
+import useToken, { TokenString } from './util/useToken';
 import './css/bootstrap.min.css';
 import './App.css';
 
@@ -15,7 +15,7 @@ export interface UserData {
   isTeacher: boolean;
 }
 
-const getUserData = (token: SessionTokenString): Promise<Response> =>
+const getUserData = (token: TokenString): Promise<Response> =>
   fetch('/get-user-data', {
     method: 'POST',
     body: JSON.stringify({ sessionTokenString: token }),
@@ -24,7 +24,7 @@ const getUserData = (token: SessionTokenString): Promise<Response> =>
 
 // Validates token from backend and empties it if it's invalid
 const validateToken = (
-  token: SessionTokenString,
+  token: TokenString,
   setTokenValid: (tokenValid: boolean) => void
 ): Promise<void> => {
   if (!token) {
@@ -51,7 +51,7 @@ const defaultUserData: UserData = {
 };
 
 const App: React.FC = () => {
-  const [token, setToken] = useSessionToken();
+  const [token, setToken] = useToken('session');
   const [tokenValid, setTokenValid] = useState(false);
   const [userData, setUserData] = useState({ ...defaultUserData });
 
@@ -95,7 +95,6 @@ const App: React.FC = () => {
 
   // TODO user admin
   // TODO user profile
-  // TODO task admin
 
   const logout = () => {
     fetch('/logout', {

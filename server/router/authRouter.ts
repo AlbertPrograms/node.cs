@@ -75,6 +75,9 @@ const removeSession = (tokenString: string): void => {
 
 /* --== Routing middleware ==-- */
 
+/**
+ * Route needs a valid user login
+ */
 const needsUser = (_: any, res: express.Response, next: express.NextFunction) => {
   const user = res.locals.user as User;
   if (!user) {
@@ -85,6 +88,9 @@ const needsUser = (_: any, res: express.Response, next: express.NextFunction) =>
   next();
 };
 
+/**
+ * Route needs a valid admin login
+ */
 const needsAdmin = (_: any, res: express.Response, next: express.NextFunction) => {
   const user = res.locals.user as User;
   if (!user || !user.isAdmin()) {
@@ -95,6 +101,9 @@ const needsAdmin = (_: any, res: express.Response, next: express.NextFunction) =
   next();
 };
 
+/**
+ * Route needs a valid teacher login
+ */
 const needsTeacher = (_: any, res: express.Response, next: express.NextFunction) => {
   const user = res.locals.user as User;
   if (!user || !user.isTeacher()) {
@@ -105,6 +114,9 @@ const needsTeacher = (_: any, res: express.Response, next: express.NextFunction)
   next();
 };
 
+/**
+ * Route needs a valid teacher or admin login
+ */
 const needsTeacherOrAdmin = (_: any, res: express.Response, next: express.NextFunction) => {
   const user = res.locals.user as User;
   if (!user || (!user.isTeacher() && !user.isAdmin())) {
@@ -138,7 +150,7 @@ router.use(async (req, res, next) => {
 // Login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = userTable.find({ username });
+  const user = await userTable.find({ username });
 
   if (!user) {
     res.status(401).send();

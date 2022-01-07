@@ -1,5 +1,5 @@
 import React, { ChangeEvent, useEffect, useState } from 'react';
-import { SessionTokenString } from '../../util/useSessionToken';
+import { TokenString } from '../../util/useToken';
 import { Navigate } from 'react-router-dom';
 import autosize from 'autosize';
 
@@ -23,7 +23,7 @@ interface EditorTask {
 }
 
 interface TaskParams {
-  token: SessionTokenString;
+  token: TokenString;
 }
 
 type FormInput = HTMLInputElement | HTMLTextAreaElement;

@@ -7,7 +7,7 @@ import React, {
   ReactElement,
 } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SessionTokenString } from '../../util/useSessionToken';
+import useToken, { TokenString } from '../../util/useToken';
 import './Editor.css';
 
 export const enum EditorModes {
@@ -18,12 +18,13 @@ export const enum EditorModes {
 
 interface EditorParams {
   mode: EditorModes;
-  token: SessionTokenString;
+  token: TokenString;
 }
 
 interface TaskResponse {
   task: string;
   token: string;
+  code?: string;
 }
 
 interface ExecutionResult {
@@ -44,7 +45,8 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
   const [code, setCode] = useState<string>();
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
   const [height, setHeight] = useState(window.innerHeight);
-  const [taskToken, setTaskToken] = useState<string>();
+  const [practiceTaskToken, setPracticeTaskToken] = useToken('practiceTask');
+  const [examTaskToken, setExamTaskToken] = useToken('examTask');
 
   const [searchParams] = useSearchParams();
 
@@ -61,12 +63,22 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
 
   useEffect(() => {
     const taskId = searchParams.get('taskId') as string;
+    
+    let body: any = { sessionTokenString: token, mode };
+    switch (mode) {
+      case EditorModes.PRACTICE:
+        body.taskToken = practiceTaskToken;
+        break;
+      case EditorModes.EXAM:
+        body.taskToken = examTaskToken;
+        break;
+      case EditorModes.TESTING:
+        body.taskId = taskId;
+    }
+
     fetch('/get-task', {
       method: 'POST',
-      body: JSON.stringify({
-        ...(token ? { sessionTokenString: token } : {}),
-        ...(taskId ? { taskId: parseInt(taskId) } : {}),
-      }),
+      body: JSON.stringify(body),
       headers: { 'Content-Type': 'application/json' },
     })
       .then((res) => {
@@ -79,7 +91,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
       .then((res) => res.json())
       .then((r: TaskResponse) => {
         setTask(r.task);
-        setTaskToken(r.token);
+        setPracticeTaskToken(r.token);
       })
       .catch((e) => {
         window.alert('Hiba történt a feladat betöltése közben');
@@ -110,7 +122,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
 
     fetch('/submit-task', {
       method: 'POST',
-      body: JSON.stringify({ token: taskToken, code }),
+      body: JSON.stringify({ token: practiceTaskToken, code }),
       headers: { 'Content-Type': 'application/json' },
     }).then(async (res) => {
       const response = (await res.json()) as SubmitResponse;
