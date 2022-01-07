@@ -42,7 +42,7 @@ interface SubmitResponse {
 
 const Editor: React.FC<EditorParams> = ({ mode, token }) => {
   const [task, setTask] = useState<string>();
-  const [code, setCode] = useState<string>();
+  const [code, setCode] = useState('');
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
   const [height, setHeight] = useState(window.innerHeight);
   const [practiceTaskToken, setPracticeTaskToken] = useToken('practiceTask');
@@ -52,6 +52,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
 
   const rowStyle = { height: `${height - 202}px` };
 
+  // Editor resize listener
   useEffect(() => {
     function handleResize() {
       setHeight(window.innerHeight);
@@ -61,7 +62,9 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Task fetch on load and mode change
   useEffect(() => {
+    console.log(practiceTaskToken);
     const taskId = searchParams.get('taskId') as string;
     
     let body: any = { sessionTokenString: token, mode };
@@ -89,15 +92,44 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
         return res;
       })
       .then((res) => res.json())
-      .then((r: TaskResponse) => {
-        setTask(r.task);
-        setPracticeTaskToken(r.token);
+      .then((res: TaskResponse) => {
+        setTask(res.task);
+        if (mode === EditorModes.PRACTICE) {
+          setPracticeTaskToken(res.token);
+        } else if (mode === EditorModes.EXAM) {
+          setExamTaskToken(res.token);
+        }
+
+        if (res.code) {
+          setCode(res.code);
+        }
       })
       .catch((e) => {
         window.alert('Hiba történt a feladat betöltése közben');
         console.error(e);
       });
-  }, [mode, token, searchParams]);
+    // Eslint doesn't mix well with custom hook setters. :/
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, token, practiceTaskToken, examTaskToken, searchParams]);
+
+  // Sync code every 5s 
+  useEffect(() => {
+    if (mode === EditorModes.TESTING) {
+      return;
+    }
+
+    const taskToken = mode === EditorModes.PRACTICE ? practiceTaskToken : examTaskToken;
+
+    const interval = window.setInterval(() => {
+      fetch('/store-task-progress', {
+        method: 'POST',
+        body: JSON.stringify({ sessionTokenString: token, taskToken, code }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  });
 
   const handleTextareaChange: ChangeEventHandler = (event) => {
     const textarea: HTMLTextAreaElement = event.target as HTMLTextAreaElement;
@@ -122,7 +154,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
 
     fetch('/submit-task', {
       method: 'POST',
-      body: JSON.stringify({ token: practiceTaskToken, code }),
+      body: JSON.stringify({ sessionTokenString: token, token: practiceTaskToken, code }),
       headers: { 'Content-Type': 'application/json' },
     }).then(async (res) => {
       const response = (await res.json()) as SubmitResponse;
@@ -171,6 +203,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
               <textarea
                 name="code"
                 className="form-control h-100 bg-dark text-light font-monospace"
+                value={code}
                 onChange={handleTextareaChange}
                 spellCheck={false}
               />

@@ -145,18 +145,26 @@ const providePracticeTask = async (
   req: express.Request,
   res: express.Response
 ) => {
-  const { taskToken, user } = req.body;
+  const { taskToken } = req.body;
+  const user = res.locals.user as User;
 
   if (taskToken) {
     const token = getTaskTokenFromTokenString(taskToken);
 
     if (token) {
+      if (token.user.Username !== user.Username) {
+        res.status(401).send();
+        return;
+      }
+
       const task = await taskTable.find({ id: token.id });
 
       if (task) {
-        res.send({ task, token: token.id, code: token.code });
+        res.send({ task: task.Description, token: token.token, code: token.code });
         return;
       }
+
+      console.log('NO TASK!?!')
     }
   }
 
@@ -175,21 +183,28 @@ const providePracticeTask = async (
 };
 
 const provideExamTask = async (req: express.Request, res: express.Response) => {
-  const { taskToken, user } = req.body;
+  const { taskToken } = req.body;
+  const user = res.locals.user as User;
 
   if (taskToken) {
     const token = getTaskTokenFromTokenString(taskToken);
 
     if (token) {
+      if (token.user.Username !== user.Username) {
+        res.status(401).send();
+        return;
+      }
+
       const task = await taskTable.find({ id: token.id });
 
       if (task) {
-        res.send({ task, token: token.id, code: token.code });
+        res.send({ task: task.Description, token: token.token, code: token.code });
         return;
       }
     }
   }
 
+  // TODO require and fetch exam stuff
   const practicableTasks = (await taskTable.get()).filter(
     (task) => task.Practicable
   );
@@ -228,6 +243,30 @@ router.post('/get-task', needsUser, async (req, res) => {
   
   // Invalid request without editor mode
   res.status(400).send();
+});
+
+// Task code saving
+router.post('/store-task-progress', needsUser, async (req, res) => {
+  const { taskToken, code } = req.body;
+  const user = res.locals.user as User;
+
+  if (taskToken) {
+    const token = getTaskTokenFromTokenString(taskToken);
+
+    if (token) {
+      if (token.user.Username !== user.Username) {
+        res.status(401).send();
+        return;
+      }
+
+      token.code = code;
+      res.send();
+      return;
+    }
+  }
+  
+  res.status(404).send();
+  return;
 });
 
 // Task submission
