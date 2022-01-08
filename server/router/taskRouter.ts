@@ -31,13 +31,13 @@ const init = async () => {
 };
 init();
 
-/* --== Interfaces, methods and variables ==-- */
-
 const compilerAddress = process.env.compilerAddress;
 
 if (!compilerAddress) {
   throw new Error('Compiler address must be set in ".env"!');
 }
+
+/* --== Interfaces, methods and variables ==-- */
 
 const enum EditorModes {
   EXAM,
@@ -84,14 +84,16 @@ interface CodeCompileAndRunRequest {
   hiddenExpectedOutput: string[];
 }
 
-const taskTokens: TaskToken[] = [];
+/* Tokens */
 
-const getTaskById = async (id: number): Promise<Task> => {
-  return await taskTable.find({ id });
-};
+const taskTokens: TaskToken[] = [];
 
 const getTaskTokenString = () =>
   bcrypt.hashSync(new Date().getTime().toString(), 5);
+
+const getTaskTokenFromTokenString = (token: string): TaskToken => {
+  return taskTokens.find((taskToken) => taskToken.token === token);
+};
 
 const assignToken = ({ id, user, token, mode }: TaskToken) => {
   if ([EditorModes.TESTING, EditorModes.PRACTICE].includes(mode)) {
@@ -108,19 +110,10 @@ const assignToken = ({ id, user, token, mode }: TaskToken) => {
   taskTokens.push({ id, user, token, mode });
 };
 
-const getTaskTokenFromTokenString = (token: string): TaskToken => {
-  return taskTokens.find((taskToken) => taskToken.token === token);
-};
+/* Tasks */
 
-const handleResults = (
-  results: ExecutionResult[],
-  hiddenResults: ExecutionResult[]
-): SubmitTaskResponse => {
-  const success = [...results, ...hiddenResults].every(
-    (result) => result.outputMatchesExpectation && result.code === 0
-  );
-  // TODO handle task completion to user
-  return { results, success };
+const getTaskById = async (id: number): Promise<Task> => {
+  return await taskTable.find({ id });
 };
 
 const provideTestTask: express.Handler = async (req, res) => {
@@ -232,6 +225,19 @@ const provideExamTask: express.Handler = async (req, res) => {
   res.send({ task: task.Description, token });
 };
 
+/* Compilation */
+
+const handleCompileAndRunResults = (
+  results: ExecutionResult[],
+  hiddenResults: ExecutionResult[]
+): SubmitTaskResponse => {
+  const success = [...results, ...hiddenResults].every(
+    (result) => result.outputMatchesExpectation && result.code === 0
+  );
+  // TODO handle task completion to user
+  return { results, success };
+};
+
 const sendCompileAndRunRequest = async (
   code: string,
   task: Task
@@ -262,7 +268,7 @@ const compileAndRunCode = async (
   }
 
   const { results, hiddenResults } = responseBody;
-  const submitResponse = handleResults(results, hiddenResults);
+  const submitResponse = handleCompileAndRunResults(results, hiddenResults);
   return submitResponse;
 };
 
