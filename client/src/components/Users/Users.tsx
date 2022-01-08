@@ -87,8 +87,10 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
           user.username !== 'admin' &&
           !user.existing &&
           !(
-            /^[A-Z0-9]{6}$/.test(user.username) || // Neptun
-            /^[A-Z]{7}$/.test(user.username) // EHA
+            (
+              /^[A-Z0-9]{6}$/.test(user.username) || // Neptun
+              /^[A-Z]{7}$/.test(user.username)
+            ) // EHA
           )
       )
     );
@@ -188,7 +190,19 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
       });
   };
 
-  const deleteUser = (username: string) => {
+  const deleteUser = ({ username, existing }: EditorUser) => {
+    if (!existing) {
+      // If the user doesn't exist yet, just remove the card
+      const newEditedUsers = JSON.parse(JSON.stringify(editedUsers));
+      const userIndex = editedUsers.findIndex(
+        (user) => user.username === username
+      );
+      newEditedUsers.splice(userIndex, 1);
+
+      setEditedUsers(newEditedUsers);
+      return;
+    }
+
     if (!window.confirm(`Biztosan törölni kívánja ${username} felhasználót?`)) {
       return;
     }
@@ -241,12 +255,16 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
     setRefreshNeeded(true);
   };
 
+  const getCardClass = ({ existing }: EditorUser) => {
+    return `card bg-dark ${existing ? 'border-secondary' : 'border-warning'}`;
+  };
+
   return (
     <div className="row w-100">
       {editedUsers.map((user, index) => {
         return (
           <div className="col-6 col-md-4 col-lg-3" key={user.id}>
-            <div className="card bg-dark border-secondary">
+            <div className={getCardClass(user)}>
               <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                 <div className={user.dirty ? 'text-warning' : ''}>
                   {user.existing ? (
@@ -264,7 +282,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                 <div>
                   {canChangePw(user) && (
                     <button //TODO
-                      className="btn btn-dark border-secondary text-danger"
+                      className="btn btn-dark border-secondary text-danger me-2"
                       onClick={() => changePw(user.username)}
                     >
                       Jelszóváltás
@@ -272,7 +290,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                   )}
                   <button
                     className="btn btn-dark border-secondary text-danger"
-                    onClick={() => deleteUser(user.username)}
+                    onClick={() => deleteUser(user)}
                   >
                     Felhasználó törlése
                   </button>
@@ -315,16 +333,18 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                   </p>
                 )}
 
-                {user.username !== 'admin' && <Fragment>
-                  <label className="text-light text-center my-2">
-                    Születésnap ÉÉÉÉHHNN formátumban (pl. 19950112)
-                  </label>
-                  <input
-                    className={"form-control bg-dark text-light"}
-                    value={user.birthday}
-                    onChange={handleChange(index, 'birthday')}
-                  />
-                </Fragment>}
+                {user.username !== 'admin' && (
+                  <Fragment>
+                    <label className="text-light text-center my-2">
+                      Születésnap ÉÉÉÉHHNN formátumban (pl. 19950112)
+                    </label>
+                    <input
+                      className={'form-control bg-dark text-light'}
+                      value={user.birthday}
+                      onChange={handleChange(index, 'birthday')}
+                    />
+                  </Fragment>
+                )}
                 {missingBirthdays[index] && (
                   <p className="text-danger py-2 m-0">
                     A születésnap nem lehet üres.

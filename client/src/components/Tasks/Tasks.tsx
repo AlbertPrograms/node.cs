@@ -23,6 +23,7 @@ interface EditorTask {
   hiddenExpectedOutput: string[];
   pointValue: string;
   practicable: boolean;
+  existing: boolean;
   dirty: boolean;
 }
 
@@ -74,6 +75,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
         ...task,
         id: `${task.id}`,
         pointValue: `${task.pointValue}`,
+        existing: true,
         dirty: false,
       }))
     );
@@ -106,7 +108,11 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
 
   // Error calc
   useEffect(() => {
-    setErrors(mismatchingArrays.some(Boolean) || numericErrors.some(Boolean) || emptyDescriptions.some(Boolean));
+    setErrors(
+      mismatchingArrays.some(Boolean) ||
+        numericErrors.some(Boolean) ||
+        emptyDescriptions.some(Boolean)
+    );
   }, [mismatchingArrays, numericErrors, emptyDescriptions]);
 
   // Empty line removal
@@ -214,6 +220,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     hiddenExpectedOutput: [],
     pointValue: '',
     practicable: false,
+    existing: false,
     dirty: true,
   });
 
@@ -225,8 +232,18 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     setEditedTasks(newEditedTasks);
   };
 
-  const deleteTask = (taskId: string) => {
-    if (!window.confirm(`Biztosan törölni kívánja a ${taskId}. feladatot?`)) {
+  const deleteTask = ({ id, existing }: EditorTask) => {
+    if (!existing) {
+      // If the task doesn't exist yet, just remove the card
+      const newEditedTasks = JSON.parse(JSON.stringify(editedTasks));
+      const taskIndex = editedTasks.findIndex((task) => task.id === id);
+      newEditedTasks.splice(taskIndex, 1);
+
+      setEditedTasks(newEditedTasks);
+      return;
+    }
+
+    if (!window.confirm(`Biztosan törölni kívánja a ${id}. feladatot?`)) {
       return;
     }
 
@@ -234,7 +251,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
       method: 'POST',
       body: JSON.stringify({
         sessionTokenString: token,
-        taskId: parseInt(taskId),
+        taskId: parseInt(id),
       }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -284,24 +301,32 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     setRefreshNeeded(true);
   };
 
+  const getCardClass = ({ existing }: EditorTask) => {
+    return `card bg-dark ${existing ? 'border-secondary' : 'border-warning'}`;
+  };
+
   return (
     <div className="row w-100">
       {editedTasks.map((task, index) => {
         return (
           <div className="col-6 col-md-4 col-lg-3" key={task.id}>
-            <div className="card bg-dark border-secondary">
+            <div className={getCardClass(task)}>
               <div className="card-header border-secondary d-flex justify-content-between align-items-center">
-                <div className={task.dirty ? 'text-warning' : ''}>
+                <div
+                  className={task.dirty && task.existing ? 'text-warning' : ''}
+                >
                   Feladat #{task.id}
-                  {task.dirty && ' (*)'}
+                  {task.dirty && task.existing && ' (*)'}
                 </div>
                 <div>
-                  <button
-                    className="btn btn-dark border-secondary me-2"
-                    onClick={() => setTaskTest(index)}
-                  >
-                    Feladatpróba
-                  </button>
+                  {task.existing && (
+                    <button
+                      className="btn btn-dark border-secondary me-2"
+                      onClick={() => setTaskTest(index)}
+                    >
+                      Feladatpróba
+                    </button>
+                  )}
                   {taskTest === index && (
                     <Navigate
                       to={{ pathname: '/task-test', search: `taskId=${index}` }}
@@ -309,7 +334,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   )}
                   <button
                     className="btn btn-dark border-secondary text-danger"
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() => deleteTask(task)}
                   >
                     Feladat törlése
                   </button>
