@@ -2,10 +2,11 @@ import bcrypt from 'bcrypt';
 import { Entity, EntityParams } from './EntityBase';
 
 export interface UserParams extends EntityParams {
-  username: string; // admin for admin, neptune code otherwise
+  username: string; // admin for root admin, neptune code otherwise
   name: string;
   email: string;
   password: string;
+  birthday: string; // Birthday in YYYYMMDD format
   admin: boolean;
   teacher: boolean;
 }
@@ -48,6 +49,8 @@ export class User extends Entity<UserParams> {
   }
 
   authenticate(providedPassword: string) {
-    return bcrypt.compareSync(providedPassword, this.params.password);
+    return this.params.password
+      ? bcrypt.compareSync(providedPassword, this.params.password)
+      : providedPassword === this.params.birthday; // password reset = birthday
   }
 }

@@ -24,6 +24,11 @@ const tableFields: TableField<UserParams>[] = [
     notNullable: true,
   },
   {
+    name: 'birthday',
+    type: 'string',
+    notNullable: true,
+  },
+  {
     name: 'admin',
     type: 'boolean',
     notNullable: true,

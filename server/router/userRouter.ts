@@ -112,6 +112,11 @@ router.post('/delete-user', needsAdmin, async (req, res) => {
     .catch((e) => res.status(500).send(e));
 });
 
+// Password reset initiation
+router.post('/init-change-password', needsAdmin, async (req, res) => {
+
+});
+
 /* --== Exports ==-- */
 
 export default router;

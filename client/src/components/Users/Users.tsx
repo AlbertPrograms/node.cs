@@ -1,10 +1,11 @@
-import React, { ChangeEvent, useEffect, useState } from 'react';
+import React, { ChangeEvent, Fragment, useEffect, useState } from 'react';
 import { TokenString } from '../../util/useToken';
 
 interface User {
   username: string;
   name: string;
   email: string;
+  birthday: string;
   admin: boolean;
   teacher: boolean;
 }
@@ -29,9 +30,12 @@ const validEmail = (email: string): Boolean =>
 const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [editedUsers, setEditedUsers] = useState<EditorUser[]>([]);
-  const [emailErrors, setEmailErrors] = useState<Boolean[]>([]);
   const [missingNames, setMissingNames] = useState<Boolean[]>([]);
   const [missingEmails, setMissingEmails] = useState<Boolean[]>([]);
+  const [missingBirthdays, setMissingBirthdays] = useState<Boolean[]>([]);
+  const [emailErrors, setEmailErrors] = useState<Boolean[]>([]);
+  const [birthdayErrors, setBirthdayErrors] = useState<Boolean[]>([]);
+  const [usernameErrors, setUsernameErrors] = useState<Boolean[]>([]);
   const [errors, setErrors] = useState(false);
   const [refreshNeeded, setRefreshNeeded] = useState(true);
   const [canSave, setCanSave] = useState(false);
@@ -53,7 +57,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
         setRefreshNeeded(false);
       });
   }, [token, refreshNeeded]);
-  
+
   // Edited user mapping from base users
   useEffect(() => {
     setEditedUsers(
@@ -69,10 +73,25 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
   // Error mapping
   useEffect(() => {
     setMissingNames(editedUsers.map((user) => !user.name.length));
-
     setMissingEmails(editedUsers.map((user) => !user.email.length));
-
+    setMissingBirthdays(editedUsers.map((user) => !user.birthday.length));
     setEmailErrors(editedUsers.map((user) => !validEmail(user.email)));
+    setBirthdayErrors(
+      editedUsers.map(
+        (user) => user.username !== 'admin' && !/[0-9]{8}/.test(user.birthday)
+      )
+    );
+    setUsernameErrors(
+      editedUsers.map(
+        (user) =>
+          user.username !== 'admin' &&
+          !user.existing &&
+          !(
+            /^[A-Z0-9]{6}$/.test(user.username) || // Neptun
+            /^[A-Z]{7}$/.test(user.username) // EHA
+          )
+      )
+    );
   }, [editedUsers]);
 
   // Dirty calc
@@ -115,6 +134,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
     username: '',
     name: '',
     email: '',
+    birthday: '',
     admin: false,
     teacher: false,
     existing: false,
@@ -127,6 +147,45 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
     newEditedUsers.push(newEditedUser);
 
     setEditedUsers(newEditedUsers);
+  };
+
+  const canChangePw = ({ username, existing, admin }: EditorUser) => {
+    return (
+      existing &&
+      username !== 'admin' && // No changing root admin
+      username !== selfUsername && // No init for self
+      (selfUsername === 'admin' || !admin) // No init for admins except by root admin
+    );
+  };
+
+  const changePw = (username: string) => {
+    if (
+      !window.confirm(
+        `Biztosan jelszóváltást kezdeményez ${username} felhasználónál?`
+      )
+    ) {
+      return;
+    }
+
+    fetch('/init-change-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionTokenString: token,
+        username,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((res) => {
+        if (res.status !== 200) {
+          throw new Error();
+        }
+
+        setRefreshNeeded(true);
+      })
+      .catch((e) => {
+        window.alert('Hiba történt a törlés közben');
+        console.error(e);
+      });
   };
 
   const deleteUser = (username: string) => {
@@ -200,9 +259,17 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                       onChange={handleChange(index, 'username')}
                     />
                   )}
-                  {user.dirty && ' (*)'}
+                  {user.dirty && user.existing && ' (*)'}
                 </div>
                 <div>
+                  {canChangePw(user) && (
+                    <button //TODO
+                      className="btn btn-dark border-secondary text-danger"
+                      onClick={() => changePw(user.username)}
+                    >
+                      Jelszóváltás
+                    </button>
+                  )}
                   <button
                     className="btn btn-dark border-secondary text-danger"
                     onClick={() => deleteUser(user.username)}
@@ -212,6 +279,13 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                 </div>
               </div>
               <div className="card-body">
+                {usernameErrors[index] && (
+                  <p className="text-danger py-2 m-0">
+                    A felhasználónév csak hatjegyű Neptun kód vagy hétjegyű EHA
+                    kód lehet.
+                  </p>
+                )}
+
                 <label className="text-light text-center mb-2">Név</label>
                 <input
                   className="form-control bg-dark text-light"
@@ -222,7 +296,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                   <p className="text-danger py-2 m-0">A név nem lehet üres.</p>
                 )}
 
-                <label className="text-light text-center mb-2">
+                <label className="text-light text-center my-2">
                   E-mail cím
                 </label>
                 <input
@@ -231,7 +305,9 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                   onChange={handleChange(index, 'email')}
                 />
                 {missingEmails[index] && (
-                  <p className="text-danger py-2 m-0">Az e-mail lehet üres.</p>
+                  <p className="text-danger py-2 m-0">
+                    Az e-mail nem lehet üres.
+                  </p>
                 )}
                 {emailErrors[index] && (
                   <p className="text-danger py-2 m-0">
@@ -239,7 +315,28 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                   </p>
                 )}
 
-                <div className="form-check">
+                {user.username !== 'admin' && <Fragment>
+                  <label className="text-light text-center my-2">
+                    Születésnap ÉÉÉÉHHNN formátumban (pl. 19950112)
+                  </label>
+                  <input
+                    className={"form-control bg-dark text-light"}
+                    value={user.birthday}
+                    onChange={handleChange(index, 'birthday')}
+                  />
+                </Fragment>}
+                {missingBirthdays[index] && (
+                  <p className="text-danger py-2 m-0">
+                    A születésnap nem lehet üres.
+                  </p>
+                )}
+                {birthdayErrors[index] && (
+                  <p className="text-danger py-2 m-0">
+                    A születésnap formátuma nem megfelelő.
+                  </p>
+                )}
+
+                <div className="form-check mt-3">
                   <label
                     className="form-check-label text-light text-center mb-2"
                     htmlFor={`${user.username}_admin`}
