@@ -120,7 +120,6 @@ const needsTeacher: express.Handler = (_, res, next) => {
 const needsTeacherOrAdmin: express.Handler = (_, res, next) => {
   const user = res.locals.user as User;
   if (!user || (!user.isTeacher() && !user.isAdmin())) {
-    console.log('fail');
     res.status(401).send();
     return;
   }

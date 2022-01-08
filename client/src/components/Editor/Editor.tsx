@@ -65,7 +65,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
 
   // Task fetch on load and mode change
   useEffect(() => {
-    console.log(practiceTaskToken);
     const taskId = searchParams.get('taskId') as string;
 
     let body: any = { sessionTokenString: token, mode };
@@ -77,7 +76,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
         body.taskToken = examTaskToken;
         break;
       case EditorModes.TESTING:
-        body.taskId = taskId;
+        body.taskId = parseInt(taskId);
     }
 
     fetch('/get-task', {
@@ -183,12 +182,10 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
   };
 
   const handleSubmitError = (res: SubmitResponse) => {
-    console.log(res);
     setSubmitResponse(res);
   };
 
   const handleSubmitSuccess = (res: SubmitResponse) => {
-    console.log(res);
     setSubmitResponse(res);
   };
 
