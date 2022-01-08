@@ -192,7 +192,9 @@ router.post('/get-user-data', needsUser, (_, res) => {
   const user = res.locals.user as User;
 
   res.send({
+    username: user.Username,
     name: user.Name,
+    email: user.Email,
     isAdmin: user.isAdmin(),
     isTeacher: user.isTeacher(),
   });

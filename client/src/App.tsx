@@ -4,13 +4,16 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Editor, { EditorModes } from './components/Editor/Editor';
 import Header from './components/Header/Header';
 import Login from './components/Login/Login';
+import Users from './components/Users/Users';
 import Tasks from './components/Tasks/Tasks';
 import useToken, { TokenString } from './util/useToken';
 import './css/bootstrap.min.css';
 import './App.css';
 
 export interface UserData {
+  username: string;
   name: string;
+  email: string;
   isAdmin: boolean;
   isTeacher: boolean;
 }
@@ -45,7 +48,9 @@ const validateToken = (
 };
 
 const defaultUserData: UserData = {
+  username: '',
   name: '',
+  email: '',
   isAdmin: false,
   isTeacher: false,
 };
@@ -121,15 +126,28 @@ const App: React.FC = () => {
                 path="/practice"
                 element={<Editor mode={EditorModes.PRACTICE} token={token} />}
               />
-              <Route path="/exam" element={<Editor mode={EditorModes.EXAM} token={token} />} />
+              <Route
+                path="/exam"
+                element={<Editor mode={EditorModes.EXAM} token={token} />}
+              />
               {(userData.isAdmin || userData.isTeacher) && (
                 <Fragment>
                   <Route
                     path="/task-test"
-                    element={<Editor mode={EditorModes.TESTING} token={token} />}
+                    element={
+                      <Editor mode={EditorModes.TESTING} token={token} />
+                    }
                   />
                   <Route path="/tasks" element={<Tasks token={token} />} />
                 </Fragment>
+              )}
+              {userData.isAdmin && (
+                <Route
+                  path="/users"
+                  element={
+                    <Users token={token} selfUsername={userData.username} />
+                  }
+                />
               )}
             </Routes>
           </div>

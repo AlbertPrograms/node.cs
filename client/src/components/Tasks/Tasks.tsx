@@ -106,7 +106,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
 
   // Error calc
   useEffect(() => {
-    setErrors(mismatchingArrays.some(Boolean) || numericErrors.some(Boolean));
+    setErrors(mismatchingArrays.some(Boolean) || numericErrors.some(Boolean) || emptyDescriptions.some(Boolean));
   }, [mismatchingArrays, numericErrors, emptyDescriptions]);
 
   // Empty line removal
@@ -217,16 +217,10 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     dirty: true,
   });
 
-  const addTask = (index?: number) => {
+  const addTask = () => {
     const newEditedTask = getNewEditorTask();
-
     const newEditedTasks = JSON.parse(JSON.stringify(editedTasks));
-
-    if (index === undefined) {
-      newEditedTasks.push(newEditedTask);
-    } else {
-      newEditedTasks.splice(index, 0, newEditedTask);
-    }
+    newEditedTasks.push(newEditedTask);
 
     setEditedTasks(newEditedTasks);
   };
