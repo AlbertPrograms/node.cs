@@ -60,4 +60,10 @@ export class UserTable extends EntityTable<UserParams, User> {
     user.resetPassword();
     await this.save([user]);
   }
+
+  async changePassword(username: string, password: string) {
+    const user = await this.find({ username });
+    user.changePassword(password);
+    await this.save([user]);
+  }
 }

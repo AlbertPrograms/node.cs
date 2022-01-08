@@ -193,9 +193,30 @@ router.post('/get-user-data', needsUser, (_, res) => {
     username: user.Username,
     name: user.Name,
     email: user.Email,
+    birthday: user.Birthday,
     isAdmin: user.isAdmin(),
     isTeacher: user.isTeacher(),
   });
+});
+
+// Change password
+router.post('/change-password', needsUser, async (req, res) => {
+  const { oldPw, newPw } = req.body;
+  const user = res.locals.user as User;
+
+  // Too short pw
+  if (newPw.length < 6) {
+    res.status(400).send();
+    return;
+  }
+  // Wrong pw
+  if (!user.authenticate(oldPw)) {
+    res.status(401).send();
+    return;
+  }
+
+  await userTable.changePassword(user.Username, newPw);
+  res.send();
 });
 
 /* --== Intervals ==-- */

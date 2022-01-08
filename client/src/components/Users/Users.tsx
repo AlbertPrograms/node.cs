@@ -183,7 +183,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
         }
 
         setRefreshNeeded(true);
-        window.alert(`${username} számára jelszóváltoztatást kezdeményezett.`)
+        window.alert(`${username} számára jelszóváltoztatást kezdeményezett.`);
       })
       .catch((e) => {
         window.alert('Hiba történt a jelszóváltoztatási kezdeményezés közben');
@@ -289,7 +289,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                       className="btn btn-dark border-secondary text-danger me-2"
                       onClick={() => resetPw(user.username)}
                     >
-                      Jelszóváltás
+                      Jelszóvisszaállítás
                     </button>
                   )}
                   <button
@@ -343,7 +343,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                       Születésnap ÉÉÉÉHHNN formátumban (pl. 19950112)
                     </label>
                     <input
-                      className={'form-control bg-dark text-light'}
+                      className="form-control bg-dark text-light"
                       value={user.birthday}
                       onChange={handleChange(index, 'birthday')}
                     />

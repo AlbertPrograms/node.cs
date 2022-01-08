@@ -3,11 +3,12 @@
   color: var(--bs-light);
 }
 .nav-item > .nav-link:hover {
-  color: var(--bs-gray-dark);
+  color: var(--bs-primary);
+  background-color: var(--bs-dark);
 }
 .nav-item > .nav-link:active {
   color: var(--bs-dark);
 }
 .nav-item > .nav-link.active {
-  color: var(--bs-dark);
+  color: var(--bs-warning);
 }

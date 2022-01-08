@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({
   }, [location]);
 
   const getLinkClass = (active: boolean) =>
-    active ? 'nav-link active' : 'nav-link';
+    `${active ? 'nav-link active' : 'nav-link'} px-2`;
 
   const getLinkAttributes = (to: string, aliases?: string[]) => ({
     className: getLinkClass(
@@ -43,28 +43,28 @@ const Header: React.FC<HeaderProps> = ({
         <ul className="navbar-nav flex-row flex-wrap bd-navbar-nav">
           {!isTeacher && !isAdmin ? (
             <Fragment>
-              <li className="nav-item pe-2">
+              <li className="nav-item">
                 <Link {...getLinkAttributes('practice')}>Gyakorlás</Link>
               </li>
-              <li className="nav-item pe-2">
+              <li className="nav-item">
                 <Link {...getLinkAttributes('exam')}>Vizsgázás</Link>
               </li>
             </Fragment>
           ) : (
             <Fragment>
-              <li className="nav-item pe-2">
+              <li className="nav-item">
                 <Link {...getLinkAttributes('practice', ['task-test'])}>Feladatpróba</Link>
               </li>
-              <li className="nav-item pe-2">
+              <li className="nav-item">
                 <Link {...getLinkAttributes('schedule')}>Vizsgáztatás</Link>
               </li>
-              <li className="nav-item pe-2">
+              <li className="nav-item">
                 <Link {...getLinkAttributes('tasks')}>Feladatok</Link>
               </li>
             </Fragment>
           )}
           {!!isAdmin && (
-            <li className="nav-item pe-2">
+            <li className="nav-item">
               <Link {...getLinkAttributes('users')}>Felhasználók</Link>
             </li>
           )}
@@ -73,11 +73,11 @@ const Header: React.FC<HeaderProps> = ({
           <li className="nav-item p-2 pe-3 text-dark">
             {name && <span>Üdv, {name}</span>}
           </li>
-          <li className="nav-item pe-2">
+          <li className="nav-item">
             <Link {...getLinkAttributes('profile')}>Profil</Link>
           </li>
           <li className="nav-item">
-            <Link className="nav-link" to="/" onClick={() => logout()}>
+            <Link className="nav-link px-2" to="/" onClick={() => logout()}>
               Kijelentkezés
             </Link>
           </li>

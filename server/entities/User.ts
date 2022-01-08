@@ -32,6 +32,14 @@ export class User extends Entity<UserParams> {
     this.params.email = email;
   }
 
+  get Birthday() {
+    return this.params.birthday;
+  }
+
+  set Birthday(birthday: string) {
+    this.params.birthday = birthday;
+  }
+
   isAdmin() {
     return this.params.admin;
   }
@@ -49,9 +57,13 @@ export class User extends Entity<UserParams> {
   }
 
   authenticate(providedPassword: string) {
-    return this.params.password
+    return this.params.password?.length
       ? bcrypt.compareSync(providedPassword, this.params.password)
       : providedPassword === this.params.birthday; // password reset = birthday
+  }
+
+  changePassword(providedPassword: string) {
+    this.params.password = bcrypt.hashSync(providedPassword, 10);
   }
 
   resetPassword() {
