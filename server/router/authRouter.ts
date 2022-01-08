@@ -78,7 +78,7 @@ const removeSession = (tokenString: string): void => {
 /**
  * Route needs a valid user login
  */
-const needsUser = (_: any, res: express.Response, next: express.NextFunction) => {
+const needsUser: express.Handler = (_, res, next) => {
   const user = res.locals.user as User;
   if (!user) {
     res.status(401).send();
@@ -91,7 +91,7 @@ const needsUser = (_: any, res: express.Response, next: express.NextFunction) =>
 /**
  * Route needs a valid admin login
  */
-const needsAdmin = (_: any, res: express.Response, next: express.NextFunction) => {
+const needsAdmin: express.Handler = (_, res, next) => {
   const user = res.locals.user as User;
   if (!user || !user.isAdmin()) {
     res.status(401).send();
@@ -104,7 +104,7 @@ const needsAdmin = (_: any, res: express.Response, next: express.NextFunction) =
 /**
  * Route needs a valid teacher login
  */
-const needsTeacher = (_: any, res: express.Response, next: express.NextFunction) => {
+const needsTeacher: express.Handler = (_, res, next) => {
   const user = res.locals.user as User;
   if (!user || !user.isTeacher()) {
     res.status(401).send();
@@ -117,7 +117,7 @@ const needsTeacher = (_: any, res: express.Response, next: express.NextFunction)
 /**
  * Route needs a valid teacher or admin login
  */
-const needsTeacherOrAdmin = (_: any, res: express.Response, next: express.NextFunction) => {
+const needsTeacherOrAdmin: express.Handler = (_, res, next) => {
   const user = res.locals.user as User;
   if (!user || (!user.isTeacher() && !user.isAdmin())) {
     console.log('fail');

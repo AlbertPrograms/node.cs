@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import fetch from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 import { needsTeacherOrAdmin, needsUser } from './authRouter';
 import { User } from '../entities/User';
 import { Task } from '../entities/Task';
@@ -61,6 +61,11 @@ interface ExecutionResult {
   args?: string;
 }
 
+interface ExecutionResponse {
+  results: ExecutionResult[];
+  hiddenResults: ExecutionResult[];
+}
+
 interface SubmitTaskRequest {
   code: string;
   token: string;
@@ -73,11 +78,17 @@ interface SubmitTaskResponse {
 
 interface CodeCompileAndRunRequest {
   code: string;
-  expectedOutput: string[];
   testData?: string[];
+  expectedOutput: string[];
+  hiddenTestData?: string[];
+  hiddenExpectedOutput: string[];
 }
 
 const taskTokens: TaskToken[] = [];
+
+const getTaskById = async (id: number): Promise<Task> => {
+  return await taskTable.find({ id });
+};
 
 const getTaskTokenString = () =>
   bcrypt.hashSync(new Date().getTime().toString(), 5);
@@ -103,17 +114,16 @@ const getTaskTokenFromTokenString = (token: string): TaskToken => {
 
 const handleResults = (
   results: ExecutionResult[],
-  task: Task
+  hiddenResults: ExecutionResult[]
 ): SubmitTaskResponse => {
-  console.log(results);
-  const success = results.every(
-    (result, index) => result.stdout === task.expectedOutput[index]
+  const success = [...results, ...hiddenResults].every(
+    (result) => result.outputMatchesExpectation && result.code === 0
   );
   // TODO handle task completion to user
   return { results, success };
 };
 
-const provideTestTask = async (req: express.Request, res: express.Response) => {
+const provideTestTask: express.Handler = async (req, res) => {
   const user = res.locals.user as User;
   if (!user.isAdmin() && !user.isTeacher) {
     // task testing requested without privileges
@@ -128,7 +138,7 @@ const provideTestTask = async (req: express.Request, res: express.Response) => {
     return;
   }
 
-  const task = await taskTable.find({ id: taskId });
+  const task = await getTaskById(taskId);
   if (!task) {
     // Task not found
     res.status(404).send();
@@ -141,10 +151,7 @@ const provideTestTask = async (req: express.Request, res: express.Response) => {
   res.send({ task: task.Description, token });
 };
 
-const providePracticeTask = async (
-  req: express.Request,
-  res: express.Response
-) => {
+const providePracticeTask: express.Handler = async (req, res) => {
   const { taskToken } = req.body;
   const user = res.locals.user as User;
 
@@ -157,14 +164,16 @@ const providePracticeTask = async (
         return;
       }
 
-      const task = await taskTable.find({ id: token.id });
+      const task = await getTaskById(token.id);
 
       if (task) {
-        res.send({ task: task.Description, token: token.token, code: token.code });
+        res.send({
+          task: task.Description,
+          token: token.token,
+          code: token.code,
+        });
         return;
       }
-
-      console.log('NO TASK!?!')
     }
   }
 
@@ -182,7 +191,7 @@ const providePracticeTask = async (
   res.send({ task: task.Description, token });
 };
 
-const provideExamTask = async (req: express.Request, res: express.Response) => {
+const provideExamTask: express.Handler = async (req, res) => {
   const { taskToken } = req.body;
   const user = res.locals.user as User;
 
@@ -195,10 +204,14 @@ const provideExamTask = async (req: express.Request, res: express.Response) => {
         return;
       }
 
-      const task = await taskTable.find({ id: token.id });
+      const task = await getTaskById(token.id);
 
       if (task) {
-        res.send({ task: task.Description, token: token.token, code: token.code });
+        res.send({
+          task: task.Description,
+          token: token.token,
+          code: token.code,
+        });
         return;
       }
     }
@@ -219,6 +232,40 @@ const provideExamTask = async (req: express.Request, res: express.Response) => {
   res.send({ task: task.Description, token });
 };
 
+const sendCompileAndRunRequest = async (
+  code: string,
+  task: Task
+): Promise<Response> => {
+  const codeCompileAndRunRequest: CodeCompileAndRunRequest = {
+    code,
+    ...(task.TestData?.length ? { testData: task.TestData } : {}),
+    expectedOutput: task.ExpectedOutput,
+    ...(task.HiddenTestData?.length ? { testData: task.HiddenTestData } : {}),
+    hiddenExpectedOutput: task.HiddenExpectedOutput,
+  };
+
+  return await fetch(`http://${compilerAddress}/compile-and-run`, {
+    method: 'POST',
+    body: JSON.stringify(codeCompileAndRunRequest),
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
+const compileAndRunCode = async (
+  code: string,
+  task: Task
+): Promise<SubmitTaskResponse> => {
+  const response = await sendCompileAndRunRequest(code, task);
+  const responseBody = (await response.json()) as ExecutionResponse;
+  if (!responseBody?.results || !responseBody.hiddenResults) {
+    return;
+  }
+
+  const { results, hiddenResults } = responseBody;
+  const submitResponse = handleResults(results, hiddenResults);
+  return submitResponse;
+};
+
 /* --== Routes ==-- */
 
 // TaskTable init await
@@ -229,18 +276,18 @@ router.use(async (_, __, next) => {
 });
 
 // Task retrieval
-router.post('/get-task', needsUser, async (req, res) => {
+router.post('/get-task', needsUser, async (req, res, _) => {
   const { mode } = req.body;
 
   switch (mode) {
     case EditorModes.TESTING:
-      return provideTestTask(req, res);
+      return provideTestTask(req, res, _);
     case EditorModes.PRACTICE:
-      return providePracticeTask(req, res);
+      return providePracticeTask(req, res, _);
     case EditorModes.EXAM:
-      return provideExamTask(req, res);
+      return provideExamTask(req, res, _);
   }
-  
+
   // Invalid request without editor mode
   res.status(400).send();
 });
@@ -264,7 +311,7 @@ router.post('/store-task-progress', needsUser, async (req, res) => {
       return;
     }
   }
-  
+
   res.status(404).send();
   return;
 });
@@ -272,33 +319,26 @@ router.post('/store-task-progress', needsUser, async (req, res) => {
 // Task submission
 router.post('/submit-task', needsUser, async (req, res) => {
   const { code, token }: SubmitTaskRequest = req.body;
-  const taskToken = taskTokens.find((tt) => tt.token === token);
 
+  const taskToken = getTaskTokenFromTokenString(token);
   if (!taskToken) {
     res.status(400).send('Invalid token');
     return;
   }
 
-  const task = await taskTable.find({ id: taskToken.id });
+  const task = await getTaskById(taskToken.id);
   if (!task) {
     res.status(404).send();
   }
 
-  const codeCompileAndRunRequest: CodeCompileAndRunRequest = {
-    code,
-    expectedOutput: task.expectedOutput,
-    ...(task.TestData?.length ? { testData: task.TestData } : {}),
-  };
-  const response = await fetch(`http://${compilerAddress}/compile-and-run`, {
-    method: 'POST',
-    body: JSON.stringify(codeCompileAndRunRequest),
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const response = await compileAndRunCode(code, task);
 
-  const results = (await response.json()) as ExecutionResult[];
+  if (!response) {
+    res.status(500).send();
+    return;
+  }
 
-  const submitResponse: SubmitTaskResponse = handleResults(results, task);
-  res.send(submitResponse);
+  res.send(response);
 });
 
 // Tasklist retrieval
@@ -320,7 +360,7 @@ router.post('/save-tasks', needsTeacherOrAdmin, async (req, res) => {
 router.post('/delete-task', needsTeacherOrAdmin, async (req, res) => {
   const { taskId } = req.body;
 
-  const task = await taskTable.find({ id: taskId });
+  const task = await getTaskById(taskId);
   if (!task) {
     res.status(404).send();
     return;

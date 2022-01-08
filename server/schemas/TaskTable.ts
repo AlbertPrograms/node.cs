@@ -26,6 +26,17 @@ const tableFields: TableField<TaskParams>[] = [
     multi: true,
   },
   {
+    name: 'hiddenTestData',
+    type: 'string',
+    multi: true,
+  },
+  {
+    name: 'hiddenExpectedOutput',
+    type: 'string',
+    notNullable: true,
+    multi: true,
+  },
+  {
     name: 'pointValue',
     type: 'integer',
     notNullable: true,

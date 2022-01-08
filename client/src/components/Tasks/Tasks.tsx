@@ -8,6 +8,8 @@ interface Task {
   description: string;
   testData?: string[];
   expectedOutput: string[];
+  hiddenTestData?: string[];
+  hiddenExpectedOutput: string[];
   pointValue: number;
   practicable: boolean;
 }
@@ -17,6 +19,8 @@ interface EditorTask {
   description: string;
   testData?: string[];
   expectedOutput: string[];
+  hiddenTestData?: string[];
+  hiddenExpectedOutput: string[];
   pointValue: string;
   practicable: boolean;
   dirty: boolean;
@@ -80,7 +84,12 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     setMismatchingArrays(
       editedTasks.map(
         (task) => task.expectedOutput.length !== (task.testData?.length || 1)
-      )
+      ) &&
+        editedTasks.map(
+          (task) =>
+            task.hiddenExpectedOutput.length !==
+            (task.hiddenTestData?.length || 1)
+        )
     );
 
     setNumericErrors(
@@ -107,6 +116,11 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
         (task) =>
           (task.testData && !task.testData.every(Boolean)) ||
           !task.expectedOutput.every(Boolean)
+      ) &&
+      !editedTasks.some(
+        (task) =>
+          (task.hiddenTestData && !task.hiddenTestData.every(Boolean)) ||
+          !task.hiddenExpectedOutput.every(Boolean)
       )
     ) {
       // Do nothing if there's no empty element in any array of any of the tasks
@@ -124,11 +138,17 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
       if (Array.isArray(testData)) {
         testData = testData.filter(Boolean);
       }
+      let hiddenTestData = task.hiddenTestData;
+      if (Array.isArray(hiddenTestData)) {
+        hiddenTestData = hiddenTestData.filter(Boolean);
+      }
 
       return {
         ...task,
         ...(testData ? { testData } : {}),
+        ...(hiddenTestData ? { hiddenTestData } : {}),
         expectedOutput: task.expectedOutput.filter(Boolean),
+        hiddenExpectedOutput: task.hiddenExpectedOutput.filter(Boolean),
       };
     });
 
@@ -191,6 +211,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     id: `${Math.max(...editedTasks.map((task) => parseInt(task.id))) + 1}`,
     description: '',
     expectedOutput: [],
+    hiddenExpectedOutput: [],
     pointValue: '',
     practicable: false,
     dirty: true,
@@ -352,6 +373,56 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   value=""
                   placeholder="Új érték hozzáadása"
                   onChange={addEntry(index, 'expectedOutput')}
+                />
+                {mismatchingArrays[index] && (
+                  <p className="text-danger py-2 m-0">
+                    Az elvárt kimenetek hossza meg kell egyezzen a tesztadatok
+                    számával, vagy ilyen híján 1-gyel.
+                  </p>
+                )}
+
+                <label className="text-light text-center my-2">
+                  Rejtett tesztadatok{' '}
+                  <small className="text-secondary">(opcionális)</small>
+                </label>
+                {task.hiddenTestData?.map((hiddenTestData, tdIndex) => (
+                  <input
+                    key={`${tdIndex}`}
+                    className="form-control bg-dark text-light mb-2"
+                    value={hiddenTestData}
+                    onChange={handleChange(index, 'hiddenTestData', tdIndex)}
+                  />
+                ))}
+                <input
+                  className="form-control bg-dark text-light"
+                  value=""
+                  placeholder="Új érték hozzáadása"
+                  onChange={addEntry(index, 'hiddenTestData')}
+                />
+
+                <label className="text-light text-center my-2">
+                  Rejtett elvárt kimenetek
+                </label>
+                {task.hiddenExpectedOutput.map(
+                  (hiddenExpectedOutput, eoIndex) => (
+                    <textarea
+                      key={`${eoIndex}`}
+                      className="form-control bg-dark text-light mb-2"
+                      value={hiddenExpectedOutput}
+                      {...setAutosize()}
+                      onChange={handleChange(
+                        index,
+                        'hiddenExpectedOutput',
+                        eoIndex
+                      )}
+                    />
+                  )
+                ) || <br />}
+                <input
+                  className="form-control bg-dark text-light"
+                  value=""
+                  placeholder="Új érték hozzáadása"
+                  onChange={addEntry(index, 'hiddenExpectedOutput')}
                 />
                 {mismatchingArrays[index] && (
                   <p className="text-danger py-2 m-0">

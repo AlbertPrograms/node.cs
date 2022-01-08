@@ -5,6 +5,8 @@ export interface TaskParams extends EntityParams {
   description: string;
   testData?: string[];
   expectedOutput: string[];
+  hiddenTestData?: string[];
+  hiddenExpectedOutput: string[];
   pointValue: number;
   practicable: boolean;
 }
@@ -22,7 +24,15 @@ export class Task extends Entity<TaskParams> {
     return this.params.testData;
   }
 
-  get expectedOutput() {
+  get ExpectedOutput() {
+    return this.params.expectedOutput;
+  }
+
+  get HiddenTestData() {
+    return this.params.testData;
+  }
+
+  get HiddenExpectedOutput() {
     return this.params.expectedOutput;
   }
 
