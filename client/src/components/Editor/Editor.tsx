@@ -5,6 +5,7 @@ import React, {
   useState,
   useEffect,
   ReactElement,
+  KeyboardEventHandler,
 } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useToken, { TokenString } from '../../util/useToken';
@@ -66,7 +67,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
   useEffect(() => {
     console.log(practiceTaskToken);
     const taskId = searchParams.get('taskId') as string;
-    
+
     let body: any = { sessionTokenString: token, mode };
     switch (mode) {
       case EditorModes.PRACTICE:
@@ -112,13 +113,14 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, token, practiceTaskToken, examTaskToken, searchParams]);
 
-  // Sync code every 5s 
+  // Sync code every 5s
   useEffect(() => {
     if (mode === EditorModes.TESTING) {
       return;
     }
 
-    const taskToken = mode === EditorModes.PRACTICE ? practiceTaskToken : examTaskToken;
+    const taskToken =
+      mode === EditorModes.PRACTICE ? practiceTaskToken : examTaskToken;
 
     const interval = window.setInterval(() => {
       fetch('/store-task-progress', {
@@ -127,13 +129,57 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
         headers: { 'Content-Type': 'application/json' },
       });
     }, 5000);
-    
+
     return () => clearInterval(interval);
   });
 
   const handleTextareaChange: ChangeEventHandler = (event) => {
     const textarea: HTMLTextAreaElement = event.target as HTMLTextAreaElement;
     setCode(textarea.value);
+  };
+
+  // Catch enters and tabs for indentation help
+  const handleTextareaKeydown: KeyboardEventHandler = (event) => {
+    if (!['Enter', 'Tab'].includes(event.key)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const textarea: HTMLTextAreaElement = event.target as HTMLTextAreaElement;
+    if (event.key === 'Tab') {
+      setCode(`${code}  `);
+    } else {
+      const [codeBefore, codeAfter] = [
+        code.substring(0, textarea.selectionStart),
+        code.substring(textarea.selectionEnd),
+        code.length - 1,
+      ];
+      const lines = codeBefore
+        .substring(0, textarea.selectionStart)
+        .split('\n');
+      const lastLine = lines[lines.length - 1].split('');
+      const braceEndingCorrection =
+        lastLine[lastLine.length - 1] === '{'
+          ? 2
+          : 0;
+      const lastLineSpacingCount = lastLine.reduceRight(
+        (acc, char) => (char === ' ' ? acc + 1 : 0),
+        0
+      );
+      const newSpacing = lastLineSpacingCount + braceEndingCorrection;
+      console.log(lastLine, lastLineSpacingCount);
+      setCode(
+        `${codeBefore}\n${new Array(newSpacing).fill(' ').join('')}${codeAfter}`
+      );
+
+      window.setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd =
+          // Put the cursor after our last inserted char
+          codeBefore.length + newSpacing + 1;
+      }, 0);
+    }
   };
 
   const handleSubmitError = (res: SubmitResponse) => {
@@ -154,7 +200,11 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
 
     fetch('/submit-task', {
       method: 'POST',
-      body: JSON.stringify({ sessionTokenString: token, token: practiceTaskToken, code }),
+      body: JSON.stringify({
+        sessionTokenString: token,
+        token: practiceTaskToken,
+        code,
+      }),
       headers: { 'Content-Type': 'application/json' },
     }).then(async (res) => {
       const response = (await res.json()) as SubmitResponse;
@@ -205,6 +255,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
                 className="form-control h-100 bg-dark text-light font-monospace"
                 value={code}
                 onChange={handleTextareaChange}
+                onKeyDown={handleTextareaKeydown}
                 spellCheck={false}
               />
             </div>
