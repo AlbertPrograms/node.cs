@@ -53,4 +53,8 @@ export class User extends Entity<UserParams> {
       ? bcrypt.compareSync(providedPassword, this.params.password)
       : providedPassword === this.params.birthday; // password reset = birthday
   }
+
+  resetPassword() {
+    this.params.password = '';
+  }
 }

@@ -63,7 +63,7 @@ const Header: React.FC<HeaderProps> = ({
               </li>
             </Fragment>
           )}
-          {isAdmin && (
+          {!!isAdmin && (
             <li className="nav-item pe-2">
               <Link {...getLinkAttributes('users')}>Felhasználók</Link>
             </li>

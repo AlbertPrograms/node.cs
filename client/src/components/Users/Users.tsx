@@ -151,16 +151,16 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
     setEditedUsers(newEditedUsers);
   };
 
-  const canChangePw = ({ username, existing, admin }: EditorUser) => {
+  const canResetPw = ({ username, existing, admin }: EditorUser) => {
     return (
       existing &&
-      username !== 'admin' && // No changing root admin
-      username !== selfUsername && // No init for self
-      (selfUsername === 'admin' || !admin) // No init for admins except by root admin
+      username !== 'admin' && // No resetting root admin ow
+      username !== selfUsername && // No reset for self
+      (selfUsername === 'admin' || !admin) // No reset for admins except by root admin
     );
   };
 
-  const changePw = (username: string) => {
+  const resetPw = (username: string) => {
     if (
       !window.confirm(
         `Biztosan jelszóváltást kezdeményez ${username} felhasználónál?`
@@ -169,7 +169,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
       return;
     }
 
-    fetch('/init-change-password', {
+    fetch('/init-reset-password', {
       method: 'POST',
       body: JSON.stringify({
         sessionTokenString: token,
@@ -183,9 +183,10 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
         }
 
         setRefreshNeeded(true);
+        window.alert(`${username} számára jelszóváltoztatást kezdeményezett.`)
       })
       .catch((e) => {
-        window.alert('Hiba történt a törlés közben');
+        window.alert('Hiba történt a jelszóváltoztatási kezdeményezés közben');
         console.error(e);
       });
   };
@@ -235,7 +236,10 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
 
     fetch('/save-users', {
       method: 'POST',
-      body: JSON.stringify({ sessionTokenString: token, users: editedUsers }),
+      body: JSON.stringify({
+        sessionTokenString: token,
+        users: editedUsers,
+      }),
       headers: { 'Content-Type': 'application/json' },
     })
       .then((res) => {
@@ -280,10 +284,10 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                   {user.dirty && user.existing && ' (*)'}
                 </div>
                 <div>
-                  {canChangePw(user) && (
+                  {canResetPw(user) && (
                     <button //TODO
                       className="btn btn-dark border-secondary text-danger me-2"
-                      onClick={() => changePw(user.username)}
+                      onClick={() => resetPw(user.username)}
                     >
                       Jelszóváltás
                     </button>

@@ -98,7 +98,7 @@ export class EntityTable<
         .set(entity);
     });
 
-    db.transaction((trx) => {
+    await db.transaction((trx) => {
       const queries: Knex.QueryBuilder[] = entities.map((entity) => {
         return db(this.tableName)
           .where(
@@ -152,7 +152,7 @@ export class EntityTable<
   private async add(entities: T[]): Promise<void> {
     this.entities.push(...entities);
 
-    db.batchInsert(
+    await db.batchInsert(
       this.tableName,
       /*@ts-ignore*/ // TODO
       entities.map((entity) => this.convertFromEntityToDbParams(entity)),
@@ -205,8 +205,11 @@ export class EntityTable<
         )
     );
 
-    this.update(existing);
-    this.add(newEntities);
+    await this.update(existing);
+    await this.add(newEntities);
+
+    // Make sure db and memory don't de-sync
+    await this.load();
   }
 
   async saveParams(entityParams: U[]): Promise<void> {

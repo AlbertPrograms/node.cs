@@ -1,5 +1,8 @@
 import express from 'express';
-import { needsAdmin, needsTeacherOrAdmin, needsUser } from './authRouter';
+import {
+  destroySession,
+  needsAdmin,
+} from './authRouter';
 import { User, UserParams } from '../entities/User';
 import { UserTable } from '../schemas/UserTable';
 
@@ -53,6 +56,13 @@ router.post('/save-users', needsAdmin, async (req, res) => {
   const users: UserParams[] = req.body.users;
   const user = res.locals.user as User;
 
+  users.forEach(async (user) => {
+    if (!await getUserByUsername(user.username)) {
+      // Set the non-existing users's passwords to empty string, i.e reset position
+      user.password = '';
+    }
+  })
+
   // Prevent non-root admins from giving or taking admin rights
   if (user.Username !== 'admin') {
     users.forEach(async (user) => {
@@ -105,6 +115,11 @@ router.post('/delete-user', needsAdmin, async (req, res) => {
     res.status(404).send();
     return;
   }
+  // Prevent deletion of other admins except by root
+  if (user.Username !== 'admin' && userToDelete.isAdmin()) {
+    res.status(401).send();
+    return;
+  }
 
   userTable
     .delete({ username })
@@ -113,8 +128,36 @@ router.post('/delete-user', needsAdmin, async (req, res) => {
 });
 
 // Password reset initiation
-router.post('/init-change-password', needsAdmin, async (req, res) => {
+router.post('/init-reset-password', needsAdmin, async (req, res) => {
+  const { username } = req.body;
+  const user = res.locals.user as User;
 
+  // Prevent password reset of root admin user or self
+  if (username === 'admin' || username === user.Username) {
+    res.status(403).send();
+    return;
+  }
+
+  const userToReset = await getUserByUsername(username);
+  if (!userToReset) {
+    res.status(404).send();
+    return;
+  }
+  // Prevent reset of other admins' pw except by root
+  if (user.Username !== 'admin' && userToReset.isAdmin()) {
+    res.status(401).send();
+    return;
+  }
+
+  userTable
+    .resetPassword(username)
+    .then(() => {
+      destroySession(username);
+      res.send();
+    })
+    .catch((e) => {
+      res.status(500).send(e);
+    });
 });
 
 /* --== Exports ==-- */

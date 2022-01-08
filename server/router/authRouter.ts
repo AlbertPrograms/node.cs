@@ -65,9 +65,9 @@ const getUserFromSessionTokenString = (tokenString: string): User => {
   return session.user;
 };
 
-const removeSession = (tokenString: string): void => {
+const destroySession = (username: string): void => {
   const sessionIndex = sessions.findIndex(
-    (sessionToken) => sessionToken.session === tokenString
+    (sessionToken) => sessionToken.user.Username === username
   );
 
   sessions.splice(sessionIndex, 1);
@@ -169,22 +169,20 @@ router.post('/login', async (req, res) => {
 });
 
 // Token validation
-router.post('/validate-token', (_, res) => {
+router.post('/validate-token', needsUser, (_, res) => {
   const valid = !!res.locals.user;
   res.status(valid ? 200 : 401).send();
 });
 
 // Logout
-router.post('/logout', (req, res) => {
-  const { sessionTokenString } = req.body;
-
-  const valid = !!res.locals.user;
-
-  if (valid) {
-    removeSession(sessionTokenString);
+router.post('/logout', needsUser, (_, res) => {
+  const user = res.locals.user as User;
+  if (!user) {
+    res.status(400).send();
   }
 
-  res.status(valid ? 200 : 401).send();
+  destroySession(user.Username);
+  res.send();
 });
 
 // User data retrieval
@@ -216,4 +214,10 @@ setInterval(() => {
 /* --== Exports ==-- */
 
 export default router;
-export { needsUser, needsAdmin, needsTeacher, needsTeacherOrAdmin };
+export {
+  destroySession,
+  needsUser,
+  needsAdmin,
+  needsTeacher,
+  needsTeacherOrAdmin,
+};
