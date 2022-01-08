@@ -44,6 +44,7 @@ interface SubmitResponse {
 const Editor: React.FC<EditorParams> = ({ mode, token }) => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState('');
+  const [storedCode, setStoredCode] = useState('');
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
   const [height, setHeight] = useState(window.innerHeight);
   const [practiceTaskToken, setPracticeTaskToken] = useToken('practiceTask');
@@ -105,14 +106,14 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
         }
       })
       .catch((e) => {
-        window.alert('Hiba történt a feladat betöltése közben');
+        window.alert('Hiba történt a továbblépés közben');
         console.error(e);
       });
     // Eslint doesn't mix well with custom hook setters. :/
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, token, practiceTaskToken, examTaskToken, searchParams]);
 
-  // Sync code every 5s
+  // Sync code every 2s if changed since last time
   useEffect(() => {
     if (mode === EditorModes.TESTING) {
       return;
@@ -122,12 +123,17 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
       mode === EditorModes.PRACTICE ? practiceTaskToken : examTaskToken;
 
     const interval = window.setInterval(() => {
+      if (code === storedCode) {
+        return;
+      }
+
+      setStoredCode(code);
       fetch('/store-task-progress', {
         method: 'POST',
         body: JSON.stringify({ sessionTokenString: token, taskToken, code }),
         headers: { 'Content-Type': 'application/json' },
       });
-    }, 5000);
+    }, 2000);
 
     return () => clearInterval(interval);
   });
@@ -160,9 +166,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
         .split('\n');
       const lastLine = lines[lines.length - 1].split('');
       const braceEndingCorrection =
-        lastLine[lastLine.length - 1] === '{'
-          ? 2
-          : 0;
+        lastLine[lastLine.length - 1] === '{' ? 2 : 0;
       const lastLineSpacingCount = lastLine.reduceRight(
         (acc, char) => (char === ' ' ? acc + 1 : 0),
         0
@@ -189,9 +193,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
     setSubmitResponse(res);
   };
 
-  // TODO cookie token as session
-  // TODO store progress on BE every couple of seconds with useEffect (save text from textarea and send that)
-  // also typed in code! losing this stuff sucks
   const handleSubmit: FormEventHandler = (event) => {
     event.preventDefault();
 
@@ -213,8 +214,47 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
     });
   };
 
-  const handleNext: MouseEventHandler = (event) => {
+  const handleFinalize: MouseEventHandler = async (event) => {
     event.preventDefault();
+
+    fetch('/finalize-task', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionTokenString: token,
+        token: practiceTaskToken,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then() // TODO
+      .catch((e) => {
+        window.alert('Hiba történt a feladat véglegesítése közben');
+        console.error(e);
+      });
+  };
+
+  const handleNext: MouseEventHandler = async (event) => {
+    event.preventDefault();
+
+    fetch('/finalize-task', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionTokenString: token,
+        token: practiceTaskToken,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((res) => {
+        if (res.status !== 200) {
+          throw new Error();
+        }
+
+        setPracticeTaskToken('');
+        setCode('');
+      }) // TODO
+      .catch((e) => {
+        window.alert('Hiba történt a feladat léptetése közben');
+        console.error(e);
+      });
   };
 
   const formatTaskDescription = (text: string): string | ReactElement => {
@@ -302,17 +342,27 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
           </div>
           <div className="row justify-content-center">
             <div className="col col-4 col-md-2">
-              <button className="form-control btn btn-dark mt-2">
+              <button className="form-control btn btn-dark border-secondary mt-2">
                 Beküldés
               </button>
             </div>
-            {submitResponse?.success && (
+            {mode === EditorModes.EXAM && submitResponse?.success && (
+              <div className="col col-4 col-md-2">
+                <button
+                  onClick={handleFinalize}
+                  className="form-control btn btn-dark border-secondary mt-2"
+                >
+                  Véglegesítés
+                </button>
+              </div>
+            )}
+            {mode === EditorModes.PRACTICE && (
               <div className="col col-4 col-md-2">
                 <button
                   onClick={handleNext}
-                  className="form-control btn btn-dark mt-2"
+                  className="form-control btn btn-dark border-secondary mt-2"
                 >
-                  Továbblépés
+                  Következő feladat
                 </button>
               </div>
             )}

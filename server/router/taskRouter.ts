@@ -51,6 +51,7 @@ interface TaskToken {
   user: User;
   mode: EditorModes;
   code?: string;
+  solved: boolean;
 }
 
 interface ExecutionResult {
@@ -95,7 +96,7 @@ const getTaskTokenFromTokenString = (token: string): TaskToken => {
   return taskTokens.find((taskToken) => taskToken.token === token);
 };
 
-const assignToken = ({ id, user, token, mode }: TaskToken) => {
+const assignToken = ({ id, user, token, mode }: Omit<TaskToken, 'solved'>) => {
   if ([EditorModes.TESTING, EditorModes.PRACTICE].includes(mode)) {
     // Remove old testing/practice mode token for this user if exists
     const oldTokenId = taskTokens.findIndex(
@@ -107,7 +108,7 @@ const assignToken = ({ id, user, token, mode }: TaskToken) => {
     }
   }
 
-  taskTokens.push({ id, user, token, mode });
+  taskTokens.push({ id, user, token, mode, solved: false });
 };
 
 /* Tasks */
@@ -338,13 +339,38 @@ router.post('/submit-task', needsUser, async (req, res) => {
   }
 
   const response = await compileAndRunCode(code, task);
+  taskToken.solved = response.success;
 
   if (!response) {
     res.status(500).send();
     return;
   }
 
+  // TODO continue handling
+
+  if (taskToken.mode === EditorModes.EXAM) {
+    // TODO exam handling
+  }
+
   res.send(response);
+});
+
+router.post('/finalize-task', needsUser, async (req, res) => {
+  const { token } = req.body;
+  const user = res.locals.user as User;
+  const taskToken = getTaskTokenFromTokenString(token);
+
+  if (!taskToken || taskToken.user.Username !== user.Username) {
+    res.status(400).send();
+    return;
+  }
+
+  const taskTokenIndex = taskTokens.findIndex(
+    (tt) => tt.token == taskToken.token
+  );
+
+  taskTokens.splice(taskTokenIndex, 1);
+  res.send();
 });
 
 // Tasklist retrieval
