@@ -27,7 +27,7 @@ const init = async () => {
 
   examTable = ExamTable.getInstance();
   examResultTable = ExamResultTable.getInstance();
-  
+
   await examTable.get();
   await examResultTable.get();
 
@@ -71,8 +71,33 @@ const assignSession = async (user: User, examId: number): Promise<void> => {
   });
 };
 
+const saveExamResult = async (session: SessionToken) => {
+  const id = await examResultTable.getNewId();
+
+  const { examId, user, solutions, successes } = session;
+
+  const result: ExamResultParams = {
+    id,
+    examId,
+    studentUsername: user.Username,
+    solutions,
+    successes,
+  };
+
+  await examResultTable.saveParams([result]);
+
+  destroySession(session);
+};
+
 const getExamById = async (id: number): Promise<Exam> =>
   await examTable.find({ id });
+
+const destroySession = (session: SessionToken) => {
+  const sessionIndex = sessions.findIndex(
+    (s) => s.examId === session.examId && s.user === session.user
+  );
+  sessions.splice(sessionIndex);
+};
 
 /* --== Routes ==-- */
 
@@ -136,7 +161,24 @@ router.post('/get-available-exams', needsUser, async (_, res) => {
       // 36 hours before it starts
       canUnregister: startMin - 36 * 3600 * 1000 > new Date().getTime(),
     }))
-    .filter(({ startMax }) => startMax > new Date().getTime()); // Don't list expired exams
+    .filter(({ startMax }) => startMax > new Date().getTime()) // Don't list expired exams
+    .filter(
+      async ({ id }) =>
+        !(await examResultTable.studentDidExam(user.Username, id))
+    );
+
+  // Async filter doesn't work, for needed
+  for (let i = exams.length - 1; i >= 0; i--) {
+    const remove = await examResultTable.studentDidExam(
+      user.Username,
+      exams[i].id
+    );
+
+    // Don't serve already finished exams to students
+    if (remove) {
+      exams.splice(i, 1);
+    }
+  }
 
   res.send(exams);
 });
@@ -208,8 +250,7 @@ router.post('/start-exam', needsUser, async (req, res) => {
   res.send();
 });
 
-router.post('/finish-exam', needsUser, async (req, res) => {
-  const { id, token } = req.body;
+router.post('/finish-exam', needsUser, async (_, res) => {
   const user = res.locals.user as User;
 
   const session = getSessionByUsername(user.Username);
@@ -219,7 +260,7 @@ router.post('/finish-exam', needsUser, async (req, res) => {
     return;
   }
 
-  // TODO finish
+  await saveExamResult(session);
 
   res.send();
 });
@@ -252,7 +293,7 @@ router.post('/get-exam-in-progress', needsUser, async (_, res) => {
 
 // Task retrieval
 router.post('/get-exam-task', needsUser, async (req, res) => {
-  const { taskId } = req.body
+  const { taskId } = req.body;
   const user = res.locals.user as User;
 
   const session = getSessionByUsername(user.Username);
@@ -276,7 +317,7 @@ router.post('/get-exam-task', needsUser, async (req, res) => {
   res.send({
     task: task.Description,
     code: session.solutions[activeTask],
-  })
+  });
 });
 
 // Task code saving
@@ -309,6 +350,8 @@ router.post('/submit-exam-task', needsUser, async (req, res) => {
   }
 
   const { examId, activeTask } = session;
+
+  session.solutions[activeTask] = code;
 
   const exam = await getExamById(examId);
   const task = await getTaskById(exam.Tasks[activeTask]);

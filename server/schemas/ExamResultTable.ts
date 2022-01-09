@@ -45,4 +45,14 @@ export class ExamResultTable extends EntityTable<ExamResultParams, ExamResult> {
 
     return ExamResultTable.instance;
   }
+
+  async getNewId() {
+    const examResults = await this.get();
+    return examResults.reduce((acc, result) => result.ExamId > acc ? result.ExamId : acc, 0);
+  }
+
+  async studentDidExam(username: string, examId: number): Promise<boolean> {
+    const examResults = await this.get();
+    return examResults.some(result => result.StudentUsername === username && result.Id === examId);
+  }
 }

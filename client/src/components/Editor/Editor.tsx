@@ -21,7 +21,7 @@ export const enum EditorModes {
 interface EditorParams {
   mode: EditorModes;
   token: TokenString;
-  examToken?: TokenString;
+  setExamInProgress?: (token: boolean) => void;
 }
 
 interface TaskResponse {
@@ -50,7 +50,7 @@ interface ExamDetails {
   finishTime: number;
 }
 
-const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
+const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState('');
   const [storedCode, setStoredCode] = useState('');
@@ -149,7 +149,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
         window.alert('Hiba történt a vizsgaadatok betöltése közben');
         console.error(e);
       });
-  }, [token, examToken, mode, examDetailsRefreshNeeded]);
+  }, [token, mode, examDetailsRefreshNeeded]);
 
   // Sync code every 2s if changed since last time
   useEffect(() => {
@@ -288,11 +288,16 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
       method: 'POST',
       body: JSON.stringify({
         sessionTokenString: token,
-        token: examToken,
       }),
       headers: { 'Content-Type': 'application/json' },
     })
-      .then() // TODO
+      .then(res => {
+        if (res.status !== 200) {
+          throw new Error();
+        }
+
+        setExamInProgress?.(false);
+      })
       .catch((e) => {
         window.alert('Hiba történt a feladat véglegesítése közben');
         console.error(e);

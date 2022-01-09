@@ -161,7 +161,13 @@ const App: React.FC = () => {
                 (examInProgress ? (
                   <Route
                     path="/exam"
-                    element={<Editor mode={EditorModes.EXAM} token={token} />}
+                    element={
+                      <Editor
+                        mode={EditorModes.EXAM}
+                        token={token}
+                        setExamInProgress={setExamInProgress}
+                      />
+                    }
                   />
                 ) : (
                   <Route

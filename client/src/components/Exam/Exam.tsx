@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TokenString } from '../../util/useToken';
 import { Navigate } from 'react-router-dom';
 
-interface ExamProps {
+interface ExamParams {
   token: TokenString;
   examInProgress: boolean;
   setExamInProgress: (token: boolean) => void;
@@ -31,7 +31,7 @@ const mapDateFromMs = (ms: number) => {
   return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
-const Exam: React.FC<ExamProps> = ({
+const Exam: React.FC<ExamParams> = ({
   token,
   examInProgress,
   setExamInProgress,
