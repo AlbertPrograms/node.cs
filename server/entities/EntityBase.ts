@@ -1,5 +1,5 @@
 // The possible types of value and entity field can have
-export type EntityValueType = string[] | string | number[] | number | boolean;
+export type EntityValueType = string[] | string | number[] | number | boolean[] | boolean;
 
 // Fields of an entity, also parameters of its constructor
 export type EntityParams = Record<string, EntityValueType>;

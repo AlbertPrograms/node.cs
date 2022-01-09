@@ -1,7 +1,9 @@
 import express from 'express';
 import { needsTeacherOrAdmin, needsUser } from './authRouter';
 import { ExamTable } from '../schemas/ExamTable';
+import { ExamResultTable } from '../schemas/ExamResultTable';
 import { Exam, ExamParams } from '../entities/Exam';
+import { ExamResult, ExamResultParams } from '../entities/ExamResult';
 import { User } from '../entities/User';
 import { compileAndRunCode, getTaskById } from './taskRouter';
 
@@ -10,6 +12,7 @@ const router = express.Router();
 /* --== Initialization ==-- */
 
 let examTable: ExamTable;
+let examResultTable: ExamResultTable;
 
 let initPromise: Promise<void>;
 let initialized = false;
@@ -23,7 +26,10 @@ const init = async () => {
   initPromise = new Promise((r) => (resolve = r));
 
   examTable = ExamTable.getInstance();
+  examResultTable = ExamResultTable.getInstance();
+  
   await examTable.get();
+  await examResultTable.get();
 
   initialized = true;
   resolve();

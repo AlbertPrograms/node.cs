@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt';
 import { Entity, EntityParams } from './EntityBase';
 
 export interface ExamParams extends EntityParams {
