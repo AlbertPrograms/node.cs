@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcrypt';
 import { needsTeacherOrAdmin, needsUser } from './authRouter';
 import { ExamTable } from '../schemas/ExamTable';
 import { Exam, ExamParams } from '../entities/Exam';
@@ -33,6 +34,46 @@ const init = async () => {
 init();
 
 /* --== Interfaces, methods and variables ==-- */
+
+interface SessionToken {
+  user: User;
+  examId: number;
+  session: string;
+  startTime: number;
+  expiryTime: number;
+  taskCount: number;
+  activeTask: number;
+  solutions: string[]; // codes go here
+}
+
+const sessions: SessionToken[] = [];
+
+const getSessionByUsername = (username: string): SessionToken => {
+  return sessions.find((session) => session.user.Username === username);
+};
+
+const getSesssionByExamTokenString = (token: string): SessionToken => {
+  return sessions.find((session) => session.session === token);
+}
+
+const assignSession = async (user: User, examId: number): Promise<string> => {
+  const sessionTokenString = bcrypt.hashSync('' + Math.random(), 10);
+  const exam = await getExamById(examId);
+  const startTime = new Date().getTime();
+  const expiryTime = startTime + exam.Duration * 60 * 1000;
+  sessions.push({
+    user,
+    examId,
+    session: sessionTokenString,
+    startTime,
+    expiryTime,
+    taskCount: exam.Tasks.length,
+    activeTask: 0,
+    solutions: [],
+  });
+
+  return sessionTokenString;
+};
 
 const getExamById = async (id: number): Promise<Exam> =>
   await examTable.find({ id });
@@ -99,7 +140,7 @@ router.post('/get-available-exams', needsUser, async (_, res) => {
       // 36 hours before it starts
       canUnregister: startMin - 36 * 3600 * 1000 > new Date().getTime(),
     }))
-    .filter(Boolean);
+    .filter(({ startMax }) => startMax > new Date().getTime()); // Don't list expired exams
 
   res.send(exams);
 });
@@ -154,6 +195,62 @@ router.post('/exam-unregistration', needsUser, async (req, res) => {
 
   examTable.unregisterStudent(id, user.Username);
   res.send();
+});
+
+router.post('/start-exam', needsUser, async (req, res) => {
+  const { id } = req.body;
+  const user = res.locals.user as User;
+
+  const existingSession = getSessionByUsername(user.Username);
+  if (existingSession) {
+    // Already has an exam in progress
+    res.status(400).send();
+    return;
+  }
+
+  const sessionTokenString = await assignSession(user, id);
+  res.send({ sessionTokenString });
+});
+
+router.post('/finish-exam', needsUser, async (req, res) => {
+  const { id, token } = req.body;
+  const user = res.locals.user as User;
+
+  const session = getSessionByUsername(user.Username);
+  if (!session) {
+    // Doesn't have an exam in progress
+    res.status(400).send();
+    return;
+  }
+
+  // TODO finish
+
+  res.send();
+});
+
+router.post('/get-exam-details', needsUser, async (req, res) => {
+  const user = res.locals.user as User;
+
+  const session = getSessionByUsername(user.Username);
+  if (!session) {
+    // Doesn't have an exam in progress
+    res.status(404).send();
+    return;
+  }
+
+  const { taskCount, activeTask, expiryTime: finishTime } = session;
+
+  res.send({
+    taskCount,
+    activeTask,
+    finishTime,
+  });
+});
+
+router.post('/validate-exam-token', needsUser, async (req, res) => {
+  const { examTokenString } = req.body;
+  const valid = getSesssionByExamTokenString(examTokenString);
+  res.status(valid ? 200 : 401).send();
 });
 
 /* --== Exports ==-- */

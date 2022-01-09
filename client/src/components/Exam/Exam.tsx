@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { TokenString } from '../../util/useToken';
+import { Navigate } from 'react-router-dom';
 
 interface ExamProps {
   token: TokenString;
+  examToken: TokenString;
+  setExamToken: (token: TokenString) => void;
 }
 
 interface ExamResponse {
@@ -28,12 +31,23 @@ const mapDateFromMs = (ms: number) => {
   return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
-const Exam: React.FC<ExamProps> = ({ token }) => {
+const Exam: React.FC<ExamProps> = ({ token, examToken, setExamToken }) => {
   const [exams, setExams] = useState<ExamResponse[]>([]);
   const [refreshNeeded, setRefreshNeeded] = useState(true);
 
-  const getCardClass = ({ registered }: ExamResponse) => {
-    return `card bg-dark ${registered ? 'border-success' : 'border-secondary'}`;
+  const examInProgress = ({ startMin, startMax }: ExamResponse) => {
+    const time = new Date().getTime();
+    return startMin < time && startMax > time;
+  };
+
+  const getCardClass = (exam: ExamResponse) => {
+    return `card bg-dark ${
+      exam.registered
+        ? examInProgress(exam)
+          ? 'border-warning'
+          : 'border-success'
+        : 'border-secondary'
+    }`;
   };
 
   useEffect(() => {
@@ -86,11 +100,7 @@ const Exam: React.FC<ExamProps> = ({ token }) => {
   };
 
   const unregister = ({ id }: ExamResponse) => {
-    if (
-      !window.confirm(
-        'Biztosan lejelentkezik erről a vizsgáról?'
-      )
-    ) {
+    if (!window.confirm('Biztosan lejelentkezik erről a vizsgáról?')) {
       return;
     }
 
@@ -115,6 +125,31 @@ const Exam: React.FC<ExamProps> = ({ token }) => {
       });
   };
 
+  const startExam = ({ id }: ExamResponse) => {
+    fetch('/start-exam', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionTokenString: token,
+        id,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((res) => {
+        if (res.status !== 200) {
+          throw new Error();
+        }
+
+        return res.json();
+      })
+      .then((res: { sessionTokenString: string }) => {
+        setExamToken(res.sessionTokenString);
+      })
+      .catch((e) => {
+        window.alert('Hiba történt a vizsgázás indítása közben');
+        console.error(e);
+      });
+  };
+
   return (
     <div className="row w-100">
       {exams.map((exam) => {
@@ -131,6 +166,16 @@ const Exam: React.FC<ExamProps> = ({ token }) => {
                     >
                       Lejelentkezés
                     </button>
+                  </div>
+                ) : exam.registered && examInProgress(exam) ? (
+                  <div>
+                    <button
+                      className="btn btn-dark border-secondary text-light"
+                      onClick={() => startExam(exam)}
+                    >
+                      Vizsgázás
+                    </button>
+                    {examToken && <Navigate to="/exam"></Navigate>}
                   </div>
                 ) : !exam.registered && exam.canRegister ? (
                   <div>

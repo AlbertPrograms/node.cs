@@ -477,14 +477,14 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
                             type="checkbox"
                             name={`${exam.id} ${id}`}
                             checked={exam.tasks.includes(id)}
-                            onClick={() => handleTaskClicked(exam.id, id)}
+                            onChange={() => handleTaskClicked(exam.id, id)}
                           />
                         </div>
                         <label
                           className="form-check-label text-light text-center mb-2"
                           htmlFor={`${exam.id} ${id}`}
                         >
-                          #{id} {description.substring(0, 50)}
+                          #{id} {description}
                         </label>
                       </div>
                     ))}

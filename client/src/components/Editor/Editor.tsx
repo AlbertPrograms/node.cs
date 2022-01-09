@@ -6,6 +6,7 @@ import React, {
   useEffect,
   ReactElement,
   KeyboardEventHandler,
+  Fragment,
 } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useToken, { TokenString } from '../../util/useToken';
@@ -20,6 +21,7 @@ export const enum EditorModes {
 interface EditorParams {
   mode: EditorModes;
   token: TokenString;
+  examToken?: TokenString;
 }
 
 interface TaskResponse {
@@ -41,10 +43,17 @@ interface SubmitResponse {
   success: boolean;
 }
 
-const Editor: React.FC<EditorParams> = ({ mode, token }) => {
+interface ExamDetails {
+  taskCount: number;
+  activeTask: number;
+  finishTime: number;
+}
+
+const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState('');
   const [storedCode, setStoredCode] = useState('');
+  const [examDetails, setExamDetails] = useState<ExamDetails>();
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
   const [height, setHeight] = useState(window.innerHeight);
   const [practiceTaskToken, setPracticeTaskToken] = useToken('practiceTask');
@@ -90,9 +99,8 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
           throw new Error();
         }
 
-        return res;
+        return res.json();
       })
-      .then((res) => res.json())
       .then((res: TaskResponse) => {
         setTask(res.task);
         if (mode === EditorModes.PRACTICE) {
@@ -112,6 +120,33 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
     // Eslint doesn't mix well with custom hook setters. :/
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, token, practiceTaskToken, examTaskToken, searchParams]);
+
+  // Exam details fetch
+  useEffect(() => {
+    if (mode !== EditorModes.EXAM) {
+      return;
+    }
+
+    fetch('/get-exam-details', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionTokenString: token,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((res) => {
+        if (res.status !== 200) {
+          throw new Error();
+        }
+
+        return res.json();
+      })
+      .then(setExamDetails)
+      .catch((e) => {
+        window.alert('Hiba történt a vizsgaadatok betöltése közben');
+        console.error(e);
+      });
+  }, [token, examToken, mode]);
 
   // Sync code every 2s if changed since last time
   useEffect(() => {
@@ -214,6 +249,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
     });
   };
 
+  // Exam mode finalize current task
   const handleFinalize: MouseEventHandler = async (event) => {
     event.preventDefault();
 
@@ -232,6 +268,29 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
       });
   };
 
+  const handleFinish: MouseEventHandler = async (event) => {
+    event.preventDefault();
+
+    if (!window.confirm('Biztosan be kívánja fejezni a vizsgázást?')) {
+      return;
+    }
+
+    fetch('/finish-exam', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionTokenString: token,
+        token: examToken,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then() // TODO
+      .catch((e) => {
+        window.alert('Hiba történt a feladat véglegesítése közben');
+        console.error(e);
+      });
+  };
+
+  // Practice mode next task
   const handleNext: MouseEventHandler = async (event) => {
     event.preventDefault();
 
@@ -346,15 +405,25 @@ const Editor: React.FC<EditorParams> = ({ mode, token }) => {
                 Beküldés
               </button>
             </div>
-            {mode === EditorModes.EXAM && submitResponse?.success && (
-              <div className="col col-4 col-md-2">
-                <button
-                  onClick={handleFinalize}
-                  className="form-control btn btn-dark border-secondary mt-2"
-                >
-                  Véglegesítés
-                </button>
-              </div>
+            {mode === EditorModes.EXAM && (
+              <Fragment>
+                <div className="col col-4 col-md-2">
+                  <button
+                    onClick={handleFinalize}
+                    className="form-control btn btn-dark border-secondary mt-2"
+                  >
+                    Véglegesítés
+                  </button>
+                </div>
+                <div className="col col-4 col-md-2">
+                  <button
+                    onClick={handleFinish}
+                    className="form-control btn btn-dark border-danger mt-2"
+                  >
+                    Vizsga befejezése
+                  </button>
+                </div>
+              </Fragment>
             )}
             {mode === EditorModes.PRACTICE && (
               <div className="col col-4 col-md-2">

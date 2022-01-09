@@ -51,6 +51,28 @@ const validateToken = (
     });
 };
 
+// Validates exam token from backend and empties it if it's invalid
+const validateExamToken = (
+  token: TokenString,
+  setTokenValid: (tokenValid: boolean) => void
+): Promise<void> => {
+  if (!token) {
+    setTokenValid(false);
+  }
+
+  return fetch('/validate-exam-token', {
+    method: 'POST',
+    body: JSON.stringify({ examTokenString: token }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+    .then((res) => {
+      setTokenValid(res.status === 200);
+    })
+    .catch((e) => {
+      console.error(e);
+    });
+};
+
 const defaultUserData: UserData = {
   username: '',
   name: '',
@@ -62,12 +84,14 @@ const defaultUserData: UserData = {
 
 const App: React.FC = () => {
   const [token, setToken] = useToken('session');
+  const [examToken, setExamToken] = useToken('examSession');
   const [tokenValid, setTokenValid] = useState(false);
+  const [examTokenValid, setExamTokenValid] = useState(false);
   const [userData, setUserData] = useState({ ...defaultUserData });
 
-  // Check regularly for token validity
+  // Check regularly for token and examToken validity
   useEffect(() => {
-    let interval: number;
+    let interval: number, examInterval: number;
 
     const validate = () => {
       validateToken(token, setTokenValid).then(() => {
@@ -77,18 +101,29 @@ const App: React.FC = () => {
         }
       });
     };
+    const validateExam = () => {
+      validateExamToken(examToken, setExamTokenValid).then(() => {
+        if (!tokenValid) {
+          // Stop checking once returned invalid until the token doesn't change
+          window.clearInterval(examInterval);
+        }
+      });
+    };
 
     validate();
+    validateExam();
 
     // Validate every 10s
     interval = window.setInterval(validate, 10000);
+    examInterval = window.setInterval(validateExam, 10000);
 
     return () => {
       window.clearInterval(interval);
+      window.clearInterval(examInterval);
     };
-  }, [token, tokenValid]);
+  }, [token, tokenValid, examToken, examTokenValid]);
 
-  // Get the user's data on a token change
+  // Get the user's data and exam token on a token change
   useEffect(() => {
     if (token) {
       getUserData(token)
@@ -98,6 +133,14 @@ const App: React.FC = () => {
       setUserData({ ...defaultUserData });
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!examTokenValid && examToken) {
+      setExamToken('');
+    }
+    // Eslint doesn't mix well with custom hook setters. :/
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examTokenValid, examToken]);
 
   if (!tokenValid) {
     return <Login setToken={setToken} />;
@@ -127,20 +170,35 @@ const App: React.FC = () => {
         <div className="content-wrapper">
           <div className="content p-4 w-100 h-100">
             <Routes>
-              {!userData.isAdmin && !userData.isTeacher && <Fragment>
-                <Route
-                  path="/practice"
-                  element={<Editor mode={EditorModes.PRACTICE} token={token} />}
-                />
-                <Route
-                  path="/exam"
-                  element={<Editor mode={EditorModes.EXAM} token={token} />}
-                />
-                <Route
-                  path="/exams"
-                  element={<Exam token={token} />}
-                />
-              </Fragment>}
+              <Route
+                path="/practice"
+                element={<Editor mode={EditorModes.PRACTICE} token={token} />}
+              />
+              {!userData.isAdmin &&
+                !userData.isTeacher &&
+                (examToken ? (
+                  <Route
+                    path="/exam"
+                    element={
+                      <Editor
+                        mode={EditorModes.EXAM}
+                        token={token}
+                        examToken={examToken}
+                      />
+                    }
+                  />
+                ) : (
+                  <Route
+                    path="/exam"
+                    element={
+                      <Exam
+                        token={token}
+                        examToken={examToken}
+                        setExamToken={setExamToken}
+                      />
+                    }
+                  />
+                ))}
               {(userData.isAdmin || userData.isTeacher) && (
                 <Fragment>
                   <Route
@@ -161,7 +219,10 @@ const App: React.FC = () => {
                   }
                 />
               )}
-              <Route path="/profile" element={<Profile token={token} userData={userData} />} />
+              <Route
+                path="/profile"
+                element={<Profile token={token} userData={userData} />}
+              />
             </Routes>
           </div>
         </div>

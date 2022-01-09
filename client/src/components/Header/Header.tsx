@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({
                 <Link {...getLinkAttributes('practice')}>Gyakorlás</Link>
               </li>
               <li className="nav-item">
-                <Link {...getLinkAttributes('exams')}>Vizsgázás</Link>
+                <Link {...getLinkAttributes('exam')}>Vizsgázás</Link>
               </li>
             </Fragment>
           ) : (

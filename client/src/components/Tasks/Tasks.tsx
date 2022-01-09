@@ -322,7 +322,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   {taskTest === index && (
                     <Navigate
                       to={{ pathname: '/task-test', search: `taskId=${index}` }}
-                    ></Navigate>
+                    />
                   )}
                   <button
                     className="btn btn-dark border-secondary text-danger"

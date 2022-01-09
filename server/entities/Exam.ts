@@ -48,6 +48,14 @@ export class Exam extends Entity<ExamParams> {
     this.params.duration = duration;
   }
 
+  get Students() {
+    return [...this.params.students];
+  }
+
+  get Tasks() {
+    return [...this.params.tasks];
+  }
+
   hasStudent(studentUsername: string) {
     if (!Array.isArray(this.params.students)) {
       return false;
