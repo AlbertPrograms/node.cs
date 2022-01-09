@@ -46,6 +46,7 @@ interface SubmitResponse {
 interface ExamDetails {
   taskCount: number;
   activeTask: number;
+  successes: boolean[];
   finishTime: number;
 }
 
@@ -54,10 +55,12 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
   const [code, setCode] = useState('');
   const [storedCode, setStoredCode] = useState('');
   const [examDetails, setExamDetails] = useState<ExamDetails>();
+  const [examTask, setExamTask] = useState(0);
+  const [examDetailsRefreshNeeded, setExamDetailsRefreshNeeded] =
+    useState(false);
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
   const [height, setHeight] = useState(window.innerHeight);
   const [practiceTaskToken, setPracticeTaskToken] = useToken('practiceTask');
-  const [examTaskToken, setExamTaskToken] = useToken('examTask');
 
   const [searchParams] = useSearchParams();
 
@@ -75,21 +78,23 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
 
   // Task fetch on load and mode change
   useEffect(() => {
-    const taskId = searchParams.get('taskId') as string;
+    const taskId = parseInt(searchParams.get('taskId') as string);
 
     let body: any = { sessionTokenString: token, mode };
     switch (mode) {
       case EditorModes.PRACTICE:
         body.taskToken = practiceTaskToken;
         break;
-      case EditorModes.EXAM:
-        body.taskToken = examTaskToken;
-        break;
       case EditorModes.TESTING:
-        body.taskId = parseInt(taskId);
+        body.taskId = taskId;
+        break;
+      case EditorModes.EXAM:
+        body.taskId = examTask;
     }
 
-    fetch('/get-task', {
+    const url = mode === EditorModes.EXAM ? '/get-exam-task' : '/get-task';
+
+    fetch(url, {
       method: 'POST',
       body: JSON.stringify(body),
       headers: { 'Content-Type': 'application/json' },
@@ -105,25 +110,22 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
         setTask(res.task);
         if (mode === EditorModes.PRACTICE) {
           setPracticeTaskToken(res.token);
-        } else if (mode === EditorModes.EXAM) {
-          setExamTaskToken(res.token);
         }
 
-        if (res.code) {
-          setCode(res.code);
-        }
+        setCode(res.code || '');
       })
+      .then(() => setExamDetailsRefreshNeeded(true))
       .catch((e) => {
-        window.alert('Hiba történt a továbblépés közben');
+        window.alert('Hiba történt a betöltés közben');
         console.error(e);
       });
     // Eslint doesn't mix well with custom hook setters. :/
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, token, practiceTaskToken, examTaskToken, searchParams]);
+  }, [mode, token, practiceTaskToken, searchParams, examTask]);
 
   // Exam details fetch
   useEffect(() => {
-    if (mode !== EditorModes.EXAM) {
+    if (mode !== EditorModes.EXAM || !examDetailsRefreshNeeded) {
       return;
     }
 
@@ -142,11 +144,12 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
         return res.json();
       })
       .then(setExamDetails)
+      .then(() => setExamDetailsRefreshNeeded(false))
       .catch((e) => {
         window.alert('Hiba történt a vizsgaadatok betöltése közben');
         console.error(e);
       });
-  }, [token, examToken, mode]);
+  }, [token, examToken, mode, examDetailsRefreshNeeded]);
 
   // Sync code every 2s if changed since last time
   useEffect(() => {
@@ -154,18 +157,25 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
       return;
     }
 
-    const taskToken =
-      mode === EditorModes.PRACTICE ? practiceTaskToken : examTaskToken;
+    let body: any = { sessionTokenString: token, code };
+    if (mode === EditorModes.PRACTICE) {
+      body.taskToken = practiceTaskToken;
+    }
 
     const interval = window.setInterval(() => {
       if (code === storedCode) {
         return;
       }
 
+      const url =
+        mode === EditorModes.EXAM
+          ? '/store-exam-task-progress'
+          : '/store-task-progress';
+
       setStoredCode(code);
-      fetch('/store-task-progress', {
+      fetch(url, {
         method: 'POST',
-        body: JSON.stringify({ sessionTokenString: token, taskToken, code }),
+        body: JSON.stringify(body),
         headers: { 'Content-Type': 'application/json' },
       });
     }, 2000);
@@ -220,14 +230,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
     }
   };
 
-  const handleSubmitError = (res: SubmitResponse) => {
-    setSubmitResponse(res);
-  };
-
-  const handleSubmitSuccess = (res: SubmitResponse) => {
-    setSubmitResponse(res);
-  };
-
   const handleSubmit: FormEventHandler = (event) => {
     event.preventDefault();
 
@@ -239,32 +241,39 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
         code,
       }),
       headers: { 'Content-Type': 'application/json' },
-    }).then(async (res) => {
-      const response = (await res.json()) as SubmitResponse;
-      if (!res.status.toString().startsWith('2') || !response.success) {
-        handleSubmitError(response);
-      } else {
-        handleSubmitSuccess(response);
-      }
-    });
+    })
+      .then(async (res) => {
+        const response = (await res.json()) as SubmitResponse;
+        setSubmitResponse(response);
+
+        setExamDetailsRefreshNeeded(true);
+      })
+      .catch((e) => {
+        console.error(e);
+        window.alert('Hiba történt a beküldés közben.');
+      });
   };
 
-  // Exam mode finalize current task
-  const handleFinalize: MouseEventHandler = async (event) => {
+  const handleSubmitExam: FormEventHandler = (event) => {
     event.preventDefault();
 
-    fetch('/finalize-task', {
+    fetch('/submit-exam-task', {
       method: 'POST',
       body: JSON.stringify({
         sessionTokenString: token,
         token: practiceTaskToken,
+        code,
       }),
       headers: { 'Content-Type': 'application/json' },
     })
-      .then() // TODO
+      .then(async (res) => {
+        const response = (await res.json()) as SubmitResponse;
+        setSubmitResponse(response);
+        setExamDetailsRefreshNeeded(true);
+      })
       .catch((e) => {
-        window.alert('Hiba történt a feladat véglegesítése közben');
         console.error(e);
+        window.alert('Hiba történt a beküldés közben.');
       });
   };
 
@@ -314,6 +323,11 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
         window.alert('Hiba történt a feladat léptetése közben');
         console.error(e);
       });
+  };
+
+  const selectExamTask = (taskIndex: number) => {
+    setExamTask(taskIndex);
+    setExamDetailsRefreshNeeded(true);
   };
 
   const formatTaskDescription = (text: string): string | ReactElement => {
@@ -401,20 +415,15 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
           </div>
           <div className="row justify-content-center">
             <div className="col col-4 col-md-2">
-              <button className="form-control btn btn-dark border-secondary mt-2">
+              <button
+                className="form-control btn btn-dark border-secondary mt-2"
+                onClick={handleSubmitExam}
+              >
                 Beküldés
               </button>
             </div>
             {mode === EditorModes.EXAM && (
               <Fragment>
-                <div className="col col-4 col-md-2">
-                  <button
-                    onClick={handleFinalize}
-                    className="form-control btn btn-dark border-secondary mt-2"
-                  >
-                    Véglegesítés
-                  </button>
-                </div>
                 <div className="col col-4 col-md-2">
                   <button
                     onClick={handleFinish}
@@ -443,10 +452,12 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
           {new Array(examDetails.taskCount).fill('').map((_, index) => (
             <div className="col" key={index}>
               <button
-                className="btn btn-dark border-secondary w-100 mb-2"
-                onClick={() => {
-                  /* TODO */
-                }}
+                className={`btn btn-dark ${
+                  examDetails.successes[index]
+                    ? 'border-success'
+                    : 'border-secondary'
+                } w-100 mb-2`}
+                onClick={() => selectExamTask(index)}
                 disabled={index === examDetails.activeTask}
               >
                 {index + 1}

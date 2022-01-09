@@ -1,9 +1,9 @@
 import express from 'express';
-import bcrypt from 'bcrypt';
 import { needsTeacherOrAdmin, needsUser } from './authRouter';
 import { ExamTable } from '../schemas/ExamTable';
 import { Exam, ExamParams } from '../entities/Exam';
 import { User } from '../entities/User';
+import { compileAndRunCode, getTaskById } from './taskRouter';
 
 const router = express.Router();
 
@@ -35,12 +35,12 @@ init();
 interface SessionToken {
   user: User;
   examId: number;
-  session: string;
   startTime: number;
   expiryTime: number;
   taskCount: number;
   activeTask: number;
   solutions: string[]; // codes go here
+  successes: boolean[]; // successful runs go here
 }
 
 const sessions: SessionToken[] = [];
@@ -49,27 +49,20 @@ const getSessionByUsername = (username: string): SessionToken => {
   return sessions.find((session) => session.user.Username === username);
 };
 
-const getSesssionByExamTokenString = (token: string): SessionToken => {
-  return sessions.find((session) => session.session === token);
-}
-
-const assignSession = async (user: User, examId: number): Promise<string> => {
-  const sessionTokenString = bcrypt.hashSync('' + Math.random(), 10);
+const assignSession = async (user: User, examId: number): Promise<void> => {
   const exam = await getExamById(examId);
   const startTime = new Date().getTime();
   const expiryTime = startTime + exam.Duration * 60 * 1000;
   sessions.push({
     user,
     examId,
-    session: sessionTokenString,
     startTime,
     expiryTime,
     taskCount: exam.Tasks.length,
     activeTask: 0,
-    solutions: new Array(exam.Tasks.length).fill(''), // TODO get solution somehow
+    solutions: new Array(exam.Tasks.length).fill(''),
+    successes: new Array(exam.Tasks.length).fill(false),
   });
-
-  return sessionTokenString;
 };
 
 const getExamById = async (id: number): Promise<Exam> =>
@@ -205,8 +198,8 @@ router.post('/start-exam', needsUser, async (req, res) => {
     return;
   }
 
-  const sessionTokenString = await assignSession(user, id);
-  res.send({ sessionTokenString });
+  await assignSession(user, id);
+  res.send();
 });
 
 router.post('/finish-exam', needsUser, async (req, res) => {
@@ -235,11 +228,12 @@ router.post('/get-exam-details', needsUser, async (_, res) => {
     return;
   }
 
-  const { taskCount, activeTask, expiryTime: finishTime } = session;
+  const { taskCount, activeTask, expiryTime: finishTime, successes } = session;
 
   res.send({
     taskCount,
     activeTask,
+    successes,
     finishTime,
   });
 });
@@ -248,6 +242,84 @@ router.post('/get-exam-in-progress', needsUser, async (_, res) => {
   const user = res.locals.user as User;
   const inProgress = getSessionByUsername(user.Username);
   res.status(inProgress ? 200 : 404).send();
+});
+
+// Task retrieval
+router.post('/get-exam-task', needsUser, async (req, res) => {
+  const { taskId } = req.body
+  const user = res.locals.user as User;
+
+  const session = getSessionByUsername(user.Username);
+  if (!session) {
+    // Doesn't have an exam in progress
+    res.status(404).send();
+    return;
+  }
+
+  session.activeTask = taskId;
+
+  const { examId, activeTask } = session;
+
+  const exam = await getExamById(examId);
+  const task = await getTaskById(exam.Tasks[activeTask]);
+  if (!task) {
+    res.status(404).send();
+    return;
+  }
+
+  res.send({
+    task: task.Description,
+    code: session.solutions[activeTask],
+  })
+});
+
+// Task code saving
+router.post('/store-exam-task-progress', needsUser, async (req, res) => {
+  const { code } = req.body;
+  const user = res.locals.user as User;
+
+  const session = getSessionByUsername(user.Username);
+  if (!session) {
+    // Doesn't have an exam in progress
+    res.status(404).send();
+    return;
+  }
+
+  session.solutions[session.activeTask] = code;
+
+  res.send();
+});
+
+// Task submission
+router.post('/submit-exam-task', needsUser, async (req, res) => {
+  const { code } = req.body;
+  const user = res.locals.user as User;
+
+  const session = getSessionByUsername(user.Username);
+  if (!session) {
+    // Doesn't have an exam in progress
+    res.status(404).send();
+    return;
+  }
+
+  const { examId, activeTask } = session;
+
+  const exam = await getExamById(examId);
+  const task = await getTaskById(exam.Tasks[activeTask]);
+  if (!task) {
+    res.status(404).send();
+    return;
+  }
+
+  const response = await compileAndRunCode(code, task);
+  if (!response) {
+    res.status(500).send();
+    return;
+  }
+
+  session.successes[activeTask] = response.success;
+
+  res.send(response);
 });
 
 /* --== Intervals ==-- */

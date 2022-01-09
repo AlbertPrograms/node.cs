@@ -320,7 +320,6 @@ router.post('/store-task-progress', needsUser, async (req, res) => {
   }
 
   res.status(404).send();
-  return;
 });
 
 // Task submission
@@ -344,12 +343,6 @@ router.post('/submit-task', needsUser, async (req, res) => {
   if (!response) {
     res.status(500).send();
     return;
-  }
-
-  // TODO continue handling
-
-  if (taskToken.mode === EditorModes.EXAM) {
-    // TODO exam handling
   }
 
   res.send(response);
@@ -407,3 +400,4 @@ router.post('/delete-task', needsTeacherOrAdmin, async (req, res) => {
 /* --== Exports ==-- */
 
 export default router;
+export { compileAndRunCode, getTaskById };
