@@ -31,7 +31,7 @@ const init = async () => {
 };
 init();
 
-/* --== Interfaces, methods and variables ==-- */
+/* --== Methods ==-- */
 
 const getUserByUsername = async (username: string): Promise<User> => {
   return await userTable.find({ username });

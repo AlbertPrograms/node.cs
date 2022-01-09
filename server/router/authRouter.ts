@@ -102,19 +102,6 @@ const needsAdmin: express.Handler = (_, res, next) => {
 };
 
 /**
- * Route needs a valid teacher login
- */
-const needsTeacher: express.Handler = (_, res, next) => {
-  const user = res.locals.user as User;
-  if (!user || !user.isTeacher()) {
-    res.status(401).send();
-    return;
-  }
-
-  next();
-};
-
-/**
  * Route needs a valid teacher or admin login
  */
 const needsTeacherOrAdmin: express.Handler = (_, res, next) => {
@@ -239,6 +226,5 @@ export {
   destroySession,
   needsUser,
   needsAdmin,
-  needsTeacher,
   needsTeacherOrAdmin,
 };

@@ -6,6 +6,7 @@ import Header from './components/Header/Header';
 import Login from './components/Login/Login';
 import Users from './components/Users/Users';
 import Tasks from './components/Tasks/Tasks';
+import Exams from './components/Exams/Exams';
 import Profile from './components/Profile/Profile';
 import useToken, { TokenString } from './util/useToken';
 import './css/bootstrap.min.css';
@@ -142,6 +143,7 @@ const App: React.FC = () => {
                     }
                   />
                   <Route path="/tasks" element={<Tasks token={token} />} />
+                  <Route path="/exams" element={<Exams token={token} />} />
                 </Fragment>
               )}
               {userData.isAdmin && (

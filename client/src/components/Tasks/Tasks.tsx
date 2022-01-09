@@ -169,10 +169,6 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
 
       setLastEditedElement(elem);
 
-      if (!Array.isArray(editedTasks)) {
-        return;
-      }
-
       const newEditedTasks = JSON.parse(JSON.stringify(editedTasks));
 
       if (fieldId !== undefined) {
@@ -188,10 +184,6 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
   const addEntry = (taskId: number, field: keyof Task) => (e: ChangeEvent) => {
     const elem = e.target as FormInput;
     const newValue = elem.value;
-
-    if (!Array.isArray(editedTasks)) {
-      return;
-    }
 
     const newEditedTasks = JSON.parse(JSON.stringify(editedTasks));
 
