@@ -26,10 +26,15 @@ interface ExamsParams {
 }
 
 const mapDateFromMs = (ms: number) => {
+  const pad = (number: number) => `${number < 10 ? '0' : ''}${number}`;
+
   const date = new Date(ms);
-  return `${date.getFullYear()}-${
-    date.getMonth() + 1
-  }-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate() + 1);
+  const hour = pad(date.getHours() + 1);
+  const minute = pad(date.getMinutes() + 1);
+  return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
 const Exams: React.FC<ExamsParams> = ({ token }) => {
@@ -74,7 +79,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
         ...exam,
         startMin: mapDateFromMs(exam.startMin),
         startMax: mapDateFromMs(exam.startMax),
-        duration: mapDateFromMs(exam.duration),
+        duration: `${exam.duration}`,
         existing: true,
         dirty: false,
       }))
@@ -83,8 +88,9 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
 
   // Error mapping
   useEffect(() => {
-    const testDateString = (dateString: string) =>
-      /^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$/.test(dateString);
+    const testDateStringValid = (dateString: string) =>
+      /^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$/.test(dateString) &&
+      !isNaN(new Date(dateString).getTime());
     const testDuration = (durationString: string) => {
       if (/^[0-9]+$/.test(durationString)) {
         return false;
@@ -102,9 +108,11 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
     setMissingStartMaxes(editedExams.map((exam) => !exam.startMax.length));
     setMissingDurations(editedExams.map((exam) => !exam.duration.length));
     setSetStartMinErrors(
-      editedExams.map((exam) => testDateString(exam.startMin))
+      editedExams.map((exam) => !testDateStringValid(exam.startMin))
     );
-    setStartMaxErrors(editedExams.map((exam) => testDateString(exam.startMax)));
+    setStartMaxErrors(
+      editedExams.map((exam) => !testDateStringValid(exam.startMax))
+    );
     setStartMaxEarlyErrors(
       editedExams.map((exam) => testStartMaxEarly(exam.startMin, exam.startMax))
     );
@@ -357,7 +365,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
                   value={exam.startMax}
                   onChange={handleChange(index, 'startMax')}
                 />
-                {missingStartMins[index] ? (
+                {missingStartMaxes[index] ? (
                   <p className="text-danger py-2 m-0">
                     A legkésőbbi kezdés nem lehet üres.
                   </p>
@@ -391,7 +399,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
                 ) : null}
 
                 <label className="text-light text-center my-2">
-                  Elvárt kimenetek
+                  Regisztrált tanulók (NEPTUN/EHA kód)
                 </label>
                 {exam.students.map((student, sIndex) => (
                   <input
@@ -404,7 +412,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
                 <input
                   className="form-control bg-dark text-light"
                   value=""
-                  placeholder="Új érték hozzáadása"
+                  placeholder="Új tanuló hozzáadása"
                   onChange={addEntry(index, 'students')}
                 />
               </div>
