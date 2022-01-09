@@ -267,7 +267,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
     <div className="row w-100">
       {editedUsers.map((user, index) => {
         return (
-          <div className="col-6 col-md-4 col-lg-3" key={user.id}>
+          <div className="col-12 col-md-6 col-xl-3" key={user.id}>
             <div className={getCardClass(user)}>
               <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                 <div className={user.dirty ? 'text-warning' : ''}>
@@ -424,7 +424,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
           <div className="col-2 col-md-3 col-lg-4"></div>
         </div>
       )}
-      <div className="col-6 col-md-4 col-lg-3 p-2">
+      <div className="col-12 col-md-6 col-xl-3 p-2">
         <button
           className="btn btn-dark border-secondary me-2"
           onClick={() => addUser()}

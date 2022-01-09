@@ -301,7 +301,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     <div className="row w-100">
       {editedTasks.map((task, index) => {
         return (
-          <div className="col-6 col-md-4 col-lg-3" key={task.id}>
+          <div className="col-12 col-md-6 col-xl-3" key={task.id}>
             <div className={getCardClass(task)}>
               <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                 <div
@@ -483,7 +483,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
           <div className="col-2 col-md-3 col-lg-4"></div>
         </div>
       )}
-      <div className="col-6 col-md-4 col-lg-3 p-2">
+      <div className="col-12 col-md-6 col-xl-3 p-2">
         <button
           className="btn btn-dark border-secondary me-2"
           onClick={() => addTask()}

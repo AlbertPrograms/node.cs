@@ -53,7 +53,7 @@ const Login: React.FC<LoginProps> = ({ setToken }) => {
   return (
     <div className="container d-flex vh-100">
       <div className="row justify-content-center align-self-center w-100">
-        <div className="col-6 col-md-4 col-lg-3 col-xl-2">
+        <div className="col-12 col-md-6 col-xl-3 col-xl-2">
           <h3 className="mb-5 text-center">Bejelentkezés</h3>
           <form
             className="form-group row justify-content-center"

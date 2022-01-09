@@ -356,7 +356,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
     <div className="row w-100">
       {editedExams.map((exam, index) => {
         return (
-          <div className="col-6 col-md-4 col-lg-3" key={exam.id}>
+          <div className="col-12 col-md-6 col-xl-3" key={exam.id}>
             <div className={getCardClass(exam)}>
               <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                 <div
@@ -518,7 +518,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
           <div className="col-2 col-md-3 col-lg-4"></div>
         </div>
       )}
-      <div className="col-6 col-md-4 col-lg-3 p-2">
+      <div className="col-12 col-md-6 col-xl-3 p-2">
         <button
           className="btn btn-dark border-secondary me-2"
           onClick={() => addExam()}

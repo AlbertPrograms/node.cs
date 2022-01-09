@@ -156,7 +156,7 @@ const Exam: React.FC<ExamProps> = ({
     <div className="row w-100">
       {exams.map((exam) => {
         return (
-          <div className="col-6 col-md-4 col-lg-3" key={exam.id}>
+          <div className="col-12 col-md-6 col-xl-3" key={exam.id}>
             <div className={getCardClass(exam)}>
               <div className="card-header border-secondary d-flex justify-content-between align-items-center">
                 <div>{exam.name}</div>

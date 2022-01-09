@@ -54,7 +54,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
   const [code, setCode] = useState('');
   const [storedCode, setStoredCode] = useState('');
   const [examDetails, setExamDetails] = useState<ExamDetails>();
-  const [examTaskNumbers, setExamTaskNumbers] = useState<number[]>([]);
   const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
   const [height, setHeight] = useState(window.innerHeight);
   const [practiceTaskToken, setPracticeTaskToken] = useToken('practiceTask');
@@ -141,10 +140,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
         }
 
         return res.json();
-      })
-      .then((res) => {
-        setExamTaskNumbers(new Array(res.taskCount).map((_, index) => index));
-        return res;
       })
       .then(setExamDetails)
       .catch((e) => {
@@ -444,8 +439,8 @@ const Editor: React.FC<EditorParams> = ({ mode, token, examToken }) => {
         </form>
       </div>
       {examDetails && (
-        <div className="row fixed-left p-2">
-          {examTaskNumbers.map((_, index) => (
+        <div className="row p-2 exam-tasks">
+          {new Array(examDetails.taskCount).fill('').map((_, index) => (
             <div className="col" key={index}>
               <button
                 className="btn btn-dark border-secondary w-100 mb-2"
