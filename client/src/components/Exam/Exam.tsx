@@ -142,13 +142,11 @@ const Exam: React.FC<ExamProps> = ({
         if (res.status !== 200) {
           throw new Error();
         }
-
-        return res.json();
       })
       .then(() => setExamInProgress(true))
       .catch((e) => {
-        window.alert('Hiba történt a vizsgázás indítása közben');
         console.error(e);
+        window.alert('Hiba történt a vizsgázás indítása közben');
       });
   };
 
