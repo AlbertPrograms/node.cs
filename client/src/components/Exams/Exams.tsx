@@ -1,14 +1,17 @@
 import React, { ChangeEvent, useEffect, useState } from 'react';
 import { TokenString } from '../../util/useToken';
 
-interface Exam {
+interface ExamResponse {
   id: number;
   name: string;
   startMin: number;
   startMax: number;
   duration: number;
   students: string[]; // usernames
+  tasks: number[]; // ids
 }
+
+type ExamRequest = Omit<ExamResponse, 'availableTasks'>;
 
 interface EditorExam {
   id: number;
@@ -17,6 +20,8 @@ interface EditorExam {
   startMax: string;
   duration: string;
   students: string[];
+  tasks: number[];
+  showTasks: boolean;
   existing: boolean;
   dirty: boolean;
 }
@@ -25,20 +30,26 @@ interface ExamsParams {
   token: TokenString;
 }
 
+interface Task {
+  id: number;
+  description: string;
+}
+
 const mapDateFromMs = (ms: number) => {
   const pad = (number: number) => `${number < 10 ? '0' : ''}${number}`;
 
   const date = new Date(ms);
   const year = date.getFullYear();
   const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate() + 1);
-  const hour = pad(date.getHours() + 1);
-  const minute = pad(date.getMinutes() + 1);
+  const day = pad(date.getDate());
+  const hour = pad(date.getHours());
+  const minute = pad(date.getMinutes());
   return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
 const Exams: React.FC<ExamsParams> = ({ token }) => {
-  const [exams, setExams] = useState<Exam[]>([]);
+  const [exams, setExams] = useState<ExamResponse[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [editedExams, setEditedExams] = useState<EditorExam[]>([]);
   const [missingNames, setMissingNames] = useState<Boolean[]>([]);
   const [missingStartMins, setMissingStartMins] = useState<Boolean[]>([]);
@@ -72,6 +83,17 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
       });
   }, [token, refreshNeeded]);
 
+  // Task getter
+  useEffect(() => {
+    fetch('/get-tasks', {
+      method: 'POST',
+      body: JSON.stringify({ sessionTokenString: token }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json())
+      .then(setTasks);
+  }, [token]);
+
   // Edited exam mapping from base exams
   useEffect(() => {
     setEditedExams(
@@ -80,6 +102,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
         startMin: mapDateFromMs(exam.startMin),
         startMax: mapDateFromMs(exam.startMax),
         duration: `${exam.duration}`,
+        showTasks: false,
         existing: true,
         dirty: false,
       }))
@@ -170,7 +193,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
   }, [editedExams, lastEditedElement]);
 
   const handleChange =
-    (examId: number, field: keyof Exam, fieldId?: number) =>
+    (examId: number, field: keyof ExamResponse, fieldId?: number) =>
     (e: ChangeEvent) => {
       const elem = e.target as HTMLInputElement;
       const newValue = elem.value;
@@ -182,35 +205,56 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
       }
 
       const newEditedExams = JSON.parse(JSON.stringify(editedExams));
+      const index = editedExams.findIndex((exam) => exam.id === examId);
 
       if (fieldId !== undefined) {
-        newEditedExams[examId][field][fieldId] = newValue;
+        newEditedExams[index][field][fieldId] = newValue;
       } else {
-        newEditedExams[examId][field] = newValue;
+        newEditedExams[index][field] = newValue;
       }
-      newEditedExams[examId].dirty = true;
+      newEditedExams[index].dirty = true;
 
       setEditedExams(newEditedExams);
     };
 
-  const addEntry = (examId: number, field: keyof Exam) => (e: ChangeEvent) => {
-    const elem = e.target as HTMLInputElement;
-    const newValue = elem.value;
+  const addEntry =
+    (examId: number, field: keyof ExamResponse) => (e: ChangeEvent) => {
+      const elem = e.target as HTMLInputElement;
+      const newValue = elem.value;
 
-    const newEditedExams = JSON.parse(JSON.stringify(editedExams));
+      const newEditedExams = JSON.parse(JSON.stringify(editedExams));
 
-    newEditedExams[examId][field].push(newValue);
-    newEditedExams[examId].dirty = true;
+      newEditedExams[examId][field].push(newValue);
+      newEditedExams[examId].dirty = true;
+
+      setEditedExams(newEditedExams);
+
+      window.setTimeout(() => {
+        const previousInputOrTextarea = e.target.previousElementSibling as
+          | HTMLInputElement
+          | HTMLTextAreaElement;
+        previousInputOrTextarea.focus();
+        previousInputOrTextarea.setSelectionRange(1, 1);
+      }, 0);
+    };
+
+  const handleTaskClicked = (examId: number, taskId: number) => {
+    const newEditedExams = JSON.parse(
+      JSON.stringify(editedExams)
+    ) as EditorExam[];
+    const index = editedExams.findIndex((exam) => exam.id === examId);
+
+    if (newEditedExams[index].tasks.includes(taskId)) {
+      const taskIndex = newEditedExams[index].tasks.findIndex(
+        (task) => task === taskId
+      );
+      newEditedExams[index].tasks.splice(taskIndex, 1);
+    } else {
+      newEditedExams[index].tasks.push(taskId);
+    }
+    newEditedExams[index].dirty = true;
 
     setEditedExams(newEditedExams);
-
-    window.setTimeout(() => {
-      const previousInputOrTextarea = e.target.previousElementSibling as
-        | HTMLInputElement
-        | HTMLTextAreaElement;
-      previousInputOrTextarea.focus();
-      previousInputOrTextarea.setSelectionRange(1, 1);
-    }, 0);
   };
 
   const getNewEditorExam = (): EditorExam => ({
@@ -220,6 +264,8 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
     startMax: '',
     duration: '',
     students: [],
+    tasks: [],
+    showTasks: false,
     existing: false,
     dirty: true,
   });
@@ -273,7 +319,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
       return;
     }
 
-    const examsToSave: Exam[] = editedExams.map((exam) => ({
+    const examsToSave: ExamRequest[] = editedExams.map((exam) => ({
       ...exam,
       startMin: new Date(exam.startMin).getTime(),
       startMax: new Date(exam.startMax).getTime(),
@@ -340,7 +386,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
                 )}
 
                 <label className="text-light text-center my-2">
-                  Kezdés leghamarabb (ÉÉÉÉ-HH-NN óó:pp)
+                  Időpont (ÉÉÉÉ-HH-NN óó:pp)
                 </label>
                 <input
                   className="form-control bg-dark text-light"
@@ -349,7 +395,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
                 />
                 {missingStartMins[index] ? (
                   <p className="text-danger py-2 m-0">
-                    A leghamarabbi kezdés nem lehet üres.
+                    Az időpont nem lehet üres.
                   </p>
                 ) : startMinErrors[index] ? (
                   <p className="text-danger py-2 m-0">
@@ -401,7 +447,7 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
                 <label className="text-light text-center my-2">
                   Regisztrált tanulók (NEPTUN/EHA kód)
                 </label>
-                {exam.students.map((student, sIndex) => (
+                {exam.students?.map((student, sIndex) => (
                   <input
                     key={`${sIndex}`}
                     className="form-control bg-dark text-light mb-2"
@@ -415,6 +461,34 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
                   placeholder="Új tanuló hozzáadása"
                   onChange={addEntry(index, 'students')}
                 />
+
+                <label className="text-light text-center my-2">Feladatok</label>
+                <div>
+                  {tasks
+                    .sort(
+                      (a, b) =>
+                        (exam.tasks.includes(b.id) ? 1 : 0) -
+                        (exam.tasks.includes(a.id) ? 1 : 0)
+                    )
+                    .map(({ id, description }) => (
+                      <div key={id}>
+                        <div className="form-check">
+                          <input
+                            type="checkbox"
+                            name={`${exam.id} ${id}`}
+                            checked={exam.tasks.includes(id)}
+                            onClick={() => handleTaskClicked(exam.id, id)}
+                          />
+                        </div>
+                        <label
+                          className="form-check-label text-light text-center mb-2"
+                          htmlFor={`${exam.id} ${id}`}
+                        >
+                          #{id} {description.substring(0, 50)}
+                        </label>
+                      </div>
+                    ))}
+                </div>
               </div>
             </div>
           </div>

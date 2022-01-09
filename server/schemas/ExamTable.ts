@@ -29,8 +29,13 @@ const tableFields: TableField<ExamParams>[] = [
     notNullable: true,
   },
   {
-    name: 'students',
+    name: 'students', // usernames
     type: 'string',
+    multi: true,
+  },
+  {
+    name: 'tasks', // ids
+    type: 'integer',
     multi: true,
   },
 ];
@@ -52,10 +57,12 @@ export class ExamTable extends EntityTable<ExamParams, Exam> {
   async registerStudent(id: number, studentUsername: string) {
     const exam = await this.find({ id });
     exam.registerStudent(studentUsername);
+    await this.save([exam]);
   }
 
   async unregisterStudent(id: number, studentUsername: string) {
     const exam = await this.find({ id });
     exam.unregisterStudent(studentUsername);
+    await this.save([exam]);
   }
 }

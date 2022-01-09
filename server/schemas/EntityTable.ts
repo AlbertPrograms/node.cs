@@ -118,9 +118,14 @@ export class EntityTable<
     for (const field of this.tableFields) {
       const name = field.name;
       if (field.multi) {
-        // String conversion necessary as knex/sqlite will
-        // convert to number if the value contains digits only
-        if (![null, undefined].includes(params[name])) {
+        if ([null, undefined].includes(params[name])) {
+          continue;
+        }
+        if (field.type === 'integer') {
+          newParams[name] = `${params[name]}`
+            ?.split(dbArraySeparatorString)
+            .map((param) => parseInt(param)) as unknown as U[keyof U];
+        } else {
           newParams[name] = `${params[name]}`?.split(
             dbArraySeparatorString
           ) as unknown as U[keyof U];
@@ -138,7 +143,7 @@ export class EntityTable<
     for (const field of this.tableFields) {
       const name = field.name;
       if (field.multi) {
-        params[name] = (entity.getParams()[name] as string[])?.join(
+        params[name] = (entity.getParams()[name] as [])?.join(
           dbArraySeparatorString
         ) as unknown as U[keyof U];
       } else {

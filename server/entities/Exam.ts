@@ -8,6 +8,7 @@ export interface ExamParams extends EntityParams {
   startMax: number;
   duration: number;
   students: string[]; // usernames
+  tasks: number[]; // ids
 }
 
 export class Exam extends Entity<ExamParams> {
@@ -74,5 +75,13 @@ export class Exam extends Entity<ExamParams> {
     if (studentIndex) {
       this.params.students.splice(studentIndex, 1);
     }
+  }
+
+  hasTask(taskId: number) {
+    if (!Array.isArray(this.params.tasks)) {
+      this.params.tasks = [];
+    }
+
+    return this.params.tasks.includes(taskId);
   }
 }

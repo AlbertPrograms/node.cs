@@ -3,6 +3,7 @@ import { needsTeacherOrAdmin, needsUser } from './authRouter';
 import { ExamTable } from '../schemas/ExamTable';
 import { Exam, ExamParams } from '../entities/Exam';
 import { User } from '../entities/User';
+import { taskTable, taskRouterInitPromise } from './taskRouter';
 
 const router = express.Router();
 
@@ -23,6 +24,8 @@ const init = async () => {
 
   examTable = ExamTable.getInstance();
   await examTable.get();
+
+  await taskRouterInitPromise;
 
   initialized = true;
   resolve();
@@ -80,6 +83,27 @@ router.post('/delete-exam', needsTeacherOrAdmin, async (req, res) => {
     .catch((e) => res.status(500).send(e));
 });
 
+router.post('/get-available-exams', needsUser, async (_, res) => {
+  const user = res.locals.user as User;
+
+  const exams = (await examTable.getParams())
+    .map(({ id, name, startMin, startMax, duration, students }) => ({
+      id,
+      name,
+      startMin,
+      startMax,
+      duration,
+      registered: students.includes(user.Username),
+      // 24 hours before it starts
+      canRegister: startMin - 24 * 3600 * 1000 > new Date().getTime(),
+      // 36 hours before it starts
+      canUnregister: startMin - 36 * 3600 * 1000 > new Date().getTime(),
+    }))
+    .filter(Boolean);
+
+  res.send(exams);
+});
+
 // Student registration
 router.post('/exam-registration', needsUser, async (req, res) => {
   const { id } = req.body;
@@ -96,13 +120,18 @@ router.post('/exam-registration', needsUser, async (req, res) => {
     res.status(400).send();
     return;
   }
+  // Past the 24h mark before start
+  if (examToRegister.StartMin - 24 * 3600 * 1000 <= new Date().getTime()) {
+    res.status(403).send();
+    return;
+  }
 
   examTable.registerStudent(id, user.Username);
   res.send();
 });
 
 // Student unregistration
-router.post('/exam-registration', needsUser, async (req, res) => {
+router.post('/exam-unregistration', needsUser, async (req, res) => {
   const { id } = req.body;
   const user = res.locals.user as User;
 
@@ -115,6 +144,11 @@ router.post('/exam-registration', needsUser, async (req, res) => {
   // Student not already registered
   if (!examToRegister.hasStudent(user.Username)) {
     res.status(400).send();
+    return;
+  }
+  // Past the 36h mark before start
+  if (examToRegister.StartMin - 36 * 3600 * 1000 <= new Date().getTime()) {
+    res.status(403).send();
     return;
   }
 

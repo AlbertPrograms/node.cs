@@ -15,7 +15,7 @@ interface Task {
 }
 
 interface EditorTask {
-  id: string;
+  id: number;
   description: string;
   testData?: string[];
   expectedOutput: string[];
@@ -73,7 +73,6 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     setEditedTasks(
       tasks.map((task) => ({
         ...task,
-        id: `${task.id}`,
         pointValue: `${task.pointValue}`,
         existing: true,
         dirty: false,
@@ -170,13 +169,14 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
       setLastEditedElement(elem);
 
       const newEditedTasks = JSON.parse(JSON.stringify(editedTasks));
+      const index = editedTasks.findIndex((task) => task.id === taskId);
 
       if (fieldId !== undefined) {
-        newEditedTasks[taskId][field][fieldId] = newValue;
+        newEditedTasks[index][field][fieldId] = newValue;
       } else {
-        newEditedTasks[taskId][field] = newValue;
+        newEditedTasks[index][field] = newValue;
       }
-      newEditedTasks[taskId].dirty = true;
+      newEditedTasks[index].dirty = true;
 
       setEditedTasks(newEditedTasks);
     };
@@ -206,7 +206,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
   };
 
   const getNewEditorTask = (): EditorTask => ({
-    id: `${Math.max(...editedTasks.map((task) => parseInt(task.id))) + 1}`,
+    id: Math.max(...editedTasks.map((task) => task.id)) + 1,
     description: '',
     expectedOutput: [],
     hiddenExpectedOutput: [],
@@ -243,7 +243,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
       method: 'POST',
       body: JSON.stringify({
         sessionTokenString: token,
-        taskId: parseInt(id),
+        taskId: id,
       }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -267,7 +267,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
 
     const tasksToSave: Task[] = editedTasks.map((editedTask) => ({
       ...editedTask,
-      id: parseInt(editedTask.id),
+      id: editedTask.id,
       pointValue: parseInt(editedTask.pointValue),
     }));
 

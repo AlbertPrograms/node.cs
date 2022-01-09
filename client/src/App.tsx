@@ -7,6 +7,7 @@ import Login from './components/Login/Login';
 import Users from './components/Users/Users';
 import Tasks from './components/Tasks/Tasks';
 import Exams from './components/Exams/Exams';
+import Exam from './components/Exam/Exam';
 import Profile from './components/Profile/Profile';
 import useToken, { TokenString } from './util/useToken';
 import './css/bootstrap.min.css';
@@ -126,14 +127,20 @@ const App: React.FC = () => {
         <div className="content-wrapper">
           <div className="content p-4 w-100 h-100">
             <Routes>
-              <Route
-                path="/practice"
-                element={<Editor mode={EditorModes.PRACTICE} token={token} />}
-              />
-              <Route
-                path="/exam"
-                element={<Editor mode={EditorModes.EXAM} token={token} />}
-              />
+              {!userData.isAdmin && !userData.isTeacher && <Fragment>
+                <Route
+                  path="/practice"
+                  element={<Editor mode={EditorModes.PRACTICE} token={token} />}
+                />
+                <Route
+                  path="/exam"
+                  element={<Editor mode={EditorModes.EXAM} token={token} />}
+                />
+                <Route
+                  path="/exams"
+                  element={<Exam token={token} />}
+                />
+              </Fragment>}
               {(userData.isAdmin || userData.isTeacher) && (
                 <Fragment>
                   <Route

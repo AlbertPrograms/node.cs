@@ -304,7 +304,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                 {usernameErrors[index] && (
                   <p className="text-danger py-2 m-0">
                     A felhasználónév csak hatjegyű Neptun kód vagy hétjegyű EHA
-                    kód lehet.
+                    kód lehet, csupa nagybetűvel.
                   </p>
                 )}
 
