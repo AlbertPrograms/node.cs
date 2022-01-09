@@ -94,6 +94,7 @@ const App: React.FC = () => {
         if (!tokenValid) {
           // Stop checking once returned invalid until the token doesn't change
           window.clearInterval(interval);
+          window.clearInterval(examInterval);
         }
       });
     };
