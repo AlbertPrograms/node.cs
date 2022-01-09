@@ -4,8 +4,8 @@ import { Navigate } from 'react-router-dom';
 
 interface ExamProps {
   token: TokenString;
-  examToken: TokenString;
-  setExamToken: (token: TokenString) => void;
+  examInProgress: boolean;
+  setExamInProgress: (token: boolean) => void;
 }
 
 interface ExamResponse {
@@ -31,11 +31,15 @@ const mapDateFromMs = (ms: number) => {
   return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
-const Exam: React.FC<ExamProps> = ({ token, examToken, setExamToken }) => {
+const Exam: React.FC<ExamProps> = ({
+  token,
+  examInProgress,
+  setExamInProgress,
+}) => {
   const [exams, setExams] = useState<ExamResponse[]>([]);
   const [refreshNeeded, setRefreshNeeded] = useState(true);
 
-  const examInProgress = ({ startMin, startMax }: ExamResponse) => {
+  const getExamInProgress = ({ startMin, startMax }: ExamResponse) => {
     const time = new Date().getTime();
     return startMin < time && startMax > time;
   };
@@ -43,7 +47,7 @@ const Exam: React.FC<ExamProps> = ({ token, examToken, setExamToken }) => {
   const getCardClass = (exam: ExamResponse) => {
     return `card bg-dark ${
       exam.registered
-        ? examInProgress(exam)
+        ? getExamInProgress(exam)
           ? 'border-warning'
           : 'border-success'
         : 'border-secondary'
@@ -141,9 +145,7 @@ const Exam: React.FC<ExamProps> = ({ token, examToken, setExamToken }) => {
 
         return res.json();
       })
-      .then((res: { sessionTokenString: string }) => {
-        setExamToken(res.sessionTokenString);
-      })
+      .then(() => setExamInProgress(true))
       .catch((e) => {
         window.alert('Hiba történt a vizsgázás indítása közben');
         console.error(e);
@@ -167,7 +169,7 @@ const Exam: React.FC<ExamProps> = ({ token, examToken, setExamToken }) => {
                       Lejelentkezés
                     </button>
                   </div>
-                ) : exam.registered && examInProgress(exam) ? (
+                ) : exam.registered && getExamInProgress(exam) ? (
                   <div>
                     <button
                       className="btn btn-dark border-secondary text-light"
@@ -175,7 +177,7 @@ const Exam: React.FC<ExamProps> = ({ token, examToken, setExamToken }) => {
                     >
                       Vizsgázás
                     </button>
-                    {examToken && <Navigate to="/exam"></Navigate>}
+                    {examInProgress && <Navigate to="/exam"></Navigate>}
                   </div>
                 ) : !exam.registered && exam.canRegister ? (
                   <div>

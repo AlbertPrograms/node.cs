@@ -51,22 +51,21 @@ const validateToken = (
     });
 };
 
-// Validates exam token from backend and empties it if it's invalid
-const validateExamToken = (
+const checkExamInProgress = (
   token: TokenString,
-  setTokenValid: (tokenValid: boolean) => void
-): Promise<void> => {
+  setExamInProgress: (examInProgress: boolean) => void
+) => {
   if (!token) {
-    setTokenValid(false);
+    return;
   }
 
-  return fetch('/validate-exam-token', {
+  return fetch('/get-exam-in-progress', {
     method: 'POST',
-    body: JSON.stringify({ examTokenString: token }),
+    body: JSON.stringify({ sessionTokenString: token }),
     headers: { 'Content-Type': 'application/json' },
   })
     .then((res) => {
-      setTokenValid(res.status === 200);
+      setExamInProgress(res.status === 200);
     })
     .catch((e) => {
       console.error(e);
@@ -84,15 +83,12 @@ const defaultUserData: UserData = {
 
 const App: React.FC = () => {
   const [token, setToken] = useToken('session');
-  const [examToken, setExamToken] = useToken('examSession');
   const [tokenValid, setTokenValid] = useState(false);
-  const [examTokenValid, setExamTokenValid] = useState(false);
+  const [examInProgress, setExamInProgress] = useState(false);
   const [userData, setUserData] = useState({ ...defaultUserData });
 
-  // Check regularly for token and examToken validity
+  // Check regularly for token validity
   useEffect(() => {
-    let interval: number, examInterval: number;
-
     const validate = () => {
       validateToken(token, setTokenValid).then(() => {
         if (!tokenValid) {
@@ -101,30 +97,21 @@ const App: React.FC = () => {
         }
       });
     };
-    const validateExam = () => {
-      validateExamToken(examToken, setExamTokenValid).then(() => {
-        if (!tokenValid) {
-          // Stop checking once returned invalid until the token doesn't change
-          window.clearInterval(examInterval);
-          setExamToken('');
-        }
-      });
-    };
+
+    const checkExam = () => checkExamInProgress(token, setExamInProgress);
 
     validate();
-    validateExam();
+    checkExam();
 
     // Validate every 10s
-    interval = window.setInterval(validate, 10000);
-    examInterval = window.setInterval(validateExam, 10000);
+    const interval = window.setInterval(validate, 10000);
+    const examInterval = window.setInterval(checkExam, 10000);
 
     return () => {
       window.clearInterval(interval);
       window.clearInterval(examInterval);
     };
-    // Eslint doesn't mix well with custom hook setters. :/
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, tokenValid, examToken, examTokenValid]);
+  }, [token, tokenValid]);
 
   // Get the user's data and exam token on a token change
   useEffect(() => {
@@ -171,16 +158,10 @@ const App: React.FC = () => {
               />
               {!userData.isAdmin &&
                 !userData.isTeacher &&
-                (examToken ? (
+                (examInProgress ? (
                   <Route
                     path="/exam"
-                    element={
-                      <Editor
-                        mode={EditorModes.EXAM}
-                        token={token}
-                        examToken={examToken}
-                      />
-                    }
+                    element={<Editor mode={EditorModes.EXAM} token={token} />}
                   />
                 ) : (
                   <Route
@@ -188,8 +169,8 @@ const App: React.FC = () => {
                     element={
                       <Exam
                         token={token}
-                        examToken={examToken}
-                        setExamToken={setExamToken}
+                        examInProgress={examInProgress}
+                        setExamInProgress={setExamInProgress}
                       />
                     }
                   />

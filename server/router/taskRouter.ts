@@ -406,6 +406,4 @@ router.post('/delete-task', needsTeacherOrAdmin, async (req, res) => {
 
 /* --== Exports ==-- */
 
-const taskRouterInitPromise = initPromise;
 export default router;
-export { taskTable, taskRouterInitPromise }

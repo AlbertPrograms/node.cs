@@ -4,7 +4,6 @@ import { needsTeacherOrAdmin, needsUser } from './authRouter';
 import { ExamTable } from '../schemas/ExamTable';
 import { Exam, ExamParams } from '../entities/Exam';
 import { User } from '../entities/User';
-import { taskTable, taskRouterInitPromise } from './taskRouter';
 
 const router = express.Router();
 
@@ -25,8 +24,6 @@ const init = async () => {
 
   examTable = ExamTable.getInstance();
   await examTable.get();
-
-  await taskRouterInitPromise;
 
   initialized = true;
   resolve();
@@ -69,7 +66,7 @@ const assignSession = async (user: User, examId: number): Promise<string> => {
     expiryTime,
     taskCount: exam.Tasks.length,
     activeTask: 0,
-    solutions: [],
+    solutions: new Array(exam.Tasks.length).fill(''), // TODO get solution somehow
   });
 
   return sessionTokenString;
@@ -228,7 +225,7 @@ router.post('/finish-exam', needsUser, async (req, res) => {
   res.send();
 });
 
-router.post('/get-exam-details', needsUser, async (req, res) => {
+router.post('/get-exam-details', needsUser, async (_, res) => {
   const user = res.locals.user as User;
 
   const session = getSessionByUsername(user.Username);
@@ -247,11 +244,24 @@ router.post('/get-exam-details', needsUser, async (req, res) => {
   });
 });
 
-router.post('/validate-exam-token', needsUser, async (req, res) => {
-  const { examTokenString } = req.body;
-  const valid = getSesssionByExamTokenString(examTokenString);
-  res.status(valid ? 200 : 401).send();
+router.post('/get-exam-in-progress', needsUser, async (_, res) => {
+  const user = res.locals.user as User;
+  const inProgress = getSessionByUsername(user.Username);
+  res.status(inProgress ? 200 : 404).send();
 });
+
+/* --== Intervals ==-- */
+
+// Check for expired session tokens every minute and delete them if they exist
+setInterval(() => {
+  const currentTime = new Date().getTime();
+
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    if (sessions[i].expiryTime < currentTime) {
+      sessions.splice(i, 1);
+    }
+  }
+}, 60000);
 
 /* --== Exports ==-- */
 
