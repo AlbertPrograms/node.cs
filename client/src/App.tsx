@@ -106,6 +106,7 @@ const App: React.FC = () => {
         if (!tokenValid) {
           // Stop checking once returned invalid until the token doesn't change
           window.clearInterval(examInterval);
+          setExamToken('');
         }
       });
     };
@@ -121,6 +122,8 @@ const App: React.FC = () => {
       window.clearInterval(interval);
       window.clearInterval(examInterval);
     };
+    // Eslint doesn't mix well with custom hook setters. :/
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, tokenValid, examToken, examTokenValid]);
 
   // Get the user's data and exam token on a token change
@@ -133,14 +136,6 @@ const App: React.FC = () => {
       setUserData({ ...defaultUserData });
     }
   }, [token]);
-
-  useEffect(() => {
-    if (!examTokenValid && examToken) {
-      setExamToken('');
-    }
-    // Eslint doesn't mix well with custom hook setters. :/
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [examTokenValid, examToken]);
 
   if (!tokenValid) {
     return <Login setToken={setToken} />;
