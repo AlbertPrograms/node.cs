@@ -185,6 +185,8 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
 
       if (fieldId !== undefined) {
         newEditedTasks[index][field][fieldId] = newValue;
+      } else if (elem.type === 'checkbox') {
+        newEditedTasks[index][field] = (elem as HTMLInputElement).checked;
       } else {
         newEditedTasks[index][field] = newValue;
       }
@@ -466,6 +468,22 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                     A pontérték csak számot tartalmazhat.
                   </p>
                 )}
+
+                <div className="form-check mt-3">
+                  <label
+                    className="form-check-label text-light text-center mb-2"
+                    htmlFor={`${task.practicable}`}
+                  >
+                    Gyakorolható
+                  </label>
+                  <input
+                    type="checkbox"
+                    name={`${task.practicable}`}
+                    className="form-check-input bg-dark text-light"
+                    checked={task.practicable}
+                    onChange={handleChange(index, 'practicable')}
+                  />
+                </div>
               </div>
             </div>
           </div>
