@@ -1,6 +1,5 @@
 import { User, UserParams } from '../entities/User';
 
-// FIXME first time setup for admin? -> WONTFIX for now
 const userParams: UserParams[] = [
   {
     username: 'admin',

@@ -13,6 +13,7 @@ const Profile: React.FC<ProfileParams> = ({ token, userData }) => {
   const [newPwConfirm, setNewPwConfirm] = useState('');
   const [pwStrength, setPwStrength] = useState(0);
 
+  // https://www.section.io/engineering-education/password-strength-checker-javascript/
   useEffect(() => {
     if (
       /(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{8,})/.test(newPw)
@@ -108,10 +109,6 @@ const Profile: React.FC<ProfileParams> = ({ token, userData }) => {
                 A megadott jelszavak nem egyeznek
               </p>
             )}
-            {
-              // TODO documentation
-              // https://www.section.io/engineering-education/password-strength-checker-javascript/
-            }
             {!!newPw.length && newPw.length >= 6 && (
               <div className="mt-2">
                 {pwStrength === 3 && (
