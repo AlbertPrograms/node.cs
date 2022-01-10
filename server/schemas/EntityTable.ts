@@ -163,7 +163,7 @@ export class EntityTable<
 
     await db.batchInsert(
       this.tableName,
-      /*@ts-ignore*/ // TODO
+      /*@ts-ignore*/ // TODO some typescript black magic going on here :)
       entities.map((entity) => this.convertFromEntityToDbParams(entity)),
       50
     );

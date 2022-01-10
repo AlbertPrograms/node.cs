@@ -130,9 +130,6 @@ const App: React.FC = () => {
     return <Login setToken={setToken} />;
   }
 
-  // TODO user admin
-  // TODO user profile
-
   const logout = () => {
     fetch('/logout', {
       method: 'POST',

@@ -211,7 +211,6 @@ const provideExamTask: express.Handler = async (req, res) => {
     }
   }
 
-  // TODO require and fetch exam stuff
   const practicableTasks = (await taskTable.get()).filter(
     (task) => task.Practicable
   );
@@ -235,7 +234,7 @@ const handleCompileAndRunResults = (
   const success = [...results, ...hiddenResults].every(
     (result) => result.outputMatchesExpectation && result.code === 0
   );
-  // TODO handle task completion to user
+
   return { results, success };
 };
 

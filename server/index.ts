@@ -25,8 +25,6 @@ const init = async (): Promise<void> => {
   let resolve: () => void;
   initPromise = new Promise((r) => (resolve = r));
 
-  // TODO
-
   initialized = true;
   resolve();
 };

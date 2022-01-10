@@ -75,7 +75,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
   const [examTask, setExamTask] = useState(0);
   const [examDetailsRefreshNeeded, setExamDetailsRefreshNeeded] =
     useState(false);
-  const [submitResponse, setSubmitResponse] = useState<SubmitResponse>(); // TODO
+  const [submitResponse, setSubmitResponse] = useState<SubmitResponse>();
   const [height, setHeight] = useState(window.innerHeight);
   const [practiceTaskToken, setPracticeTaskToken] = useToken('practiceTask');
 
@@ -340,7 +340,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
 
         setPracticeTaskToken('');
         setCode('');
-      }) // TODO
+      })
       .catch((e) => {
         window.alert('Hiba történt a feladat léptetése közben');
         console.error(e);
@@ -356,8 +356,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
     return text.split('\n').join('<br />');
   };
 
-  // TODO tab -> 2/4 spaces
-  // TODO select task by id if teach/admin
   return (
     <div className="container d-flex">
       <div className="row w-100 justify-content-center align-self-center">

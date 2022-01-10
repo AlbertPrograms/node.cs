@@ -285,7 +285,7 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                 </div>
                 <div>
                   {canResetPw(user) && (
-                    <button //TODO
+                    <button
                       className="btn btn-dark border-secondary text-danger me-2"
                       onClick={() => resetPw(user.username)}
                     >
