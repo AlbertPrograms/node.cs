@@ -110,7 +110,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
         body.taskToken = practiceTaskToken;
         break;
       case EditorModes.TESTING:
-        body.taskId = taskId;
+        body.taskId = parseInt(searchParams.get('taskId') as string);
         break;
       case EditorModes.EXAM:
         body.taskId = examTask;
@@ -139,6 +139,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
         setCode(res.code || '');
       })
       .then(() => setExamDetailsRefreshNeeded(true))
+      .then(() => setSubmitResponse(undefined))
       .catch((e) => {
         window.alert('Hiba történt a betöltés közben');
         console.error(e);

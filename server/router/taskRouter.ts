@@ -133,6 +133,7 @@ const provideTestTask: express.Handler = async (req, res) => {
     return;
   }
 
+  console.log(taskId);
   const task = await getTaskById(taskId);
   if (!task) {
     // Task not found
@@ -147,46 +148,6 @@ const provideTestTask: express.Handler = async (req, res) => {
 };
 
 const providePracticeTask: express.Handler = async (req, res) => {
-  const { taskToken } = req.body;
-  const user = res.locals.user as User;
-
-  if (taskToken) {
-    const token = getTaskTokenFromTokenString(taskToken);
-
-    if (token) {
-      if (token.user.Username !== user.Username) {
-        res.status(401).send();
-        return;
-      }
-
-      const task = await getTaskById(token.id);
-
-      if (task) {
-        res.send({
-          task: task.Description,
-          token: token.token,
-          code: token.code,
-        });
-        return;
-      }
-    }
-  }
-
-  const practicableTasks = (await taskTable.get()).filter(
-    (task) => task.Practicable
-  );
-  const randomTaskId = Math.round(
-    Math.random() * (practicableTasks.length - 1)
-  );
-
-  const task = practicableTasks[randomTaskId];
-  const token = getTaskTokenString();
-  assignToken({ id: randomTaskId, token, user, mode: EditorModes.PRACTICE });
-
-  res.send({ task: task.Description, token });
-};
-
-const provideExamTask: express.Handler = async (req, res) => {
   const { taskToken } = req.body;
   const user = res.locals.user as User;
 
@@ -291,8 +252,6 @@ router.post('/get-task', needsUser, async (req, res, _) => {
       return provideTestTask(req, res, _);
     case EditorModes.PRACTICE:
       return providePracticeTask(req, res, _);
-    case EditorModes.EXAM:
-      return provideExamTask(req, res, _);
   }
 
   // Invalid request without editor mode
