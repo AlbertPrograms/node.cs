@@ -3,9 +3,9 @@ import { needsTeacherOrAdmin, needsUser } from './authRouter';
 import { ExamTable } from '../schemas/ExamTable';
 import { ExamResultTable } from '../schemas/ExamResultTable';
 import { Exam, ExamParams } from '../entities/Exam';
-import { ExamResult, ExamResultParams } from '../entities/ExamResult';
+import { ExamResultParams } from '../entities/ExamResult';
 import { User } from '../entities/User';
-import { compileAndRunCode, getTaskById } from './taskRouter';
+import { compileAndRunCode, getTaskById, taskTable } from './taskRouter';
 
 const router = express.Router();
 
@@ -369,6 +369,48 @@ router.post('/submit-exam-task', needsUser, async (req, res) => {
   session.successes[activeTask] = response.success;
 
   res.send(response);
+});
+
+router.post('/get-exam-results', needsUser, async (_, res) => {
+  const user = res.locals.user as User;
+
+  let examResults = await examResultTable.getParams();
+
+  if (!user.isAdmin && !user.isTeacher) {
+    // Only show their own exam results to students
+    examResults = examResults.filter(
+      (result) => result.studentUsername === user.Username
+    );
+  }
+
+  const mappedResults = [];
+  // Need for because of async
+  for (let i = 0; i < examResults.length; i++) {
+    const result = examResults[i];
+    const exam = await getExamById(result.examId);
+    const tasks = await taskTable.getTasks(exam.Tasks);
+    const totalPoints = tasks.reduce((acc, task) => task.PointValue + acc, 0);
+    const scoredPoints = tasks
+      .filter((_, index) => result.successes[index])
+      .reduce((acc, task) => task.PointValue + acc, 0);
+    const tasksSolutionsAndSuccesses = tasks.map((task, index) => {
+      return [
+        task.Description,
+        result.solutions[index],
+        result.successes[index],
+      ];
+    });
+
+    mappedResults.push({
+      examName: exam.Name,
+      student: result.studentUsername,
+      totalPoints,
+      scoredPoints,
+      tasksSolutionsAndSuccesses,
+    });
+  }
+
+  res.send(mappedResults);
 });
 
 /* --== Intervals ==-- */

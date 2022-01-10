@@ -50,6 +50,23 @@ interface ExamDetails {
   finishTime: number;
 }
 
+const formatTaskDescription = (text: string): string | ReactElement => {
+  const splitByBackticks = text.split('`');
+
+  if (splitByBackticks.length % 2 === 0) {
+    return text;
+  }
+
+  const formattedArray = splitByBackticks.map((str, index) =>
+    index % 2 === 1 ? (
+      <code key={str}>{str}</code>
+    ) : (
+      <span key={str}>{str}</span>
+    )
+  );
+  return <span>{formattedArray}</span>;
+};
+
 const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState('');
@@ -335,23 +352,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
     setExamDetailsRefreshNeeded(true);
   };
 
-  const formatTaskDescription = (text: string): string | ReactElement => {
-    const splitByBackticks = text.split('`');
-
-    if (splitByBackticks.length % 2 === 0) {
-      return text;
-    }
-
-    const formattedArray = splitByBackticks.map((str, index) =>
-      index % 2 === 1 ? (
-        <code key={str}>{str}</code>
-      ) : (
-        <span key={str}>{str}</span>
-      )
-    );
-    return <span>{formattedArray}</span>;
-  };
-
   const formatOutput = (text: string): string => {
     return text.split('\n').join('<br />');
   };
@@ -476,3 +476,4 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
 };
 
 export default Editor;
+export { formatTaskDescription };

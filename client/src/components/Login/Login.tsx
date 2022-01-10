@@ -1,7 +1,7 @@
 import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { TokenString } from '../../util/useToken';
 
-interface LoginProps {
+interface LoginParams {
   setToken: (token: TokenString) => void;
 }
 
@@ -9,7 +9,7 @@ interface LoginResponseBody {
   sessionTokenString: TokenString;
 }
 
-const Login: React.FC<LoginProps> = ({ setToken }) => {
+const Login: React.FC<LoginParams> = ({ setToken }) => {
   const [username, setUsername] = useState<string>();
   const [password, setPassword] = useState<string>();
   const [submitting, setSubmitting] = useState(false);

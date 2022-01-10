@@ -124,11 +124,15 @@ export class EntityTable<
         if (field.type === 'integer') {
           newParams[name] = `${params[name]}`
             ?.split(dbArraySeparatorString)
-            .map((param) => parseInt(param)) as unknown as U[keyof U];
+            .map((param) => parseInt(param)) as U[keyof U];
+        } else if (field.type === 'boolean') {
+          newParams[name] = `${params[name]}`
+            ?.split(dbArraySeparatorString)
+            .map((param) => param === 'true') as U[keyof U];
         } else {
           newParams[name] = `${params[name]}`?.split(
             dbArraySeparatorString
-          ) as unknown as U[keyof U];
+          ) as U[keyof U];
         }
       } else {
         newParams[name] = params[name];
@@ -145,7 +149,7 @@ export class EntityTable<
       if (field.multi) {
         params[name] = (entity.getParams()[name] as [])?.join(
           dbArraySeparatorString
-        ) as unknown as U[keyof U];
+        ) as U[keyof U];
       } else {
         params[name] = entity.getParams()[name];
       }

@@ -3,11 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { UserData } from '../../App';
 import './Header.css';
 
-type HeaderProps = UserData & {
+type HeaderParams = UserData & {
   logout: () => void;
 };
 
-const Header: React.FC<HeaderProps> = ({
+const Header: React.FC<HeaderParams> = ({
   name,
   isAdmin,
   isTeacher,
@@ -53,7 +53,9 @@ const Header: React.FC<HeaderProps> = ({
           ) : (
             <Fragment>
               <li className="nav-item">
-                <Link {...getLinkAttributes('practice', ['task-test'])}>Feladatpróba</Link>
+                <Link {...getLinkAttributes('practice', ['task-test'])}>
+                  Feladatpróba
+                </Link>
               </li>
               <li className="nav-item">
                 <Link {...getLinkAttributes('exams')}>Vizsgák</Link>
@@ -68,6 +70,9 @@ const Header: React.FC<HeaderProps> = ({
               <Link {...getLinkAttributes('users')}>Felhasználók</Link>
             </li>
           )}
+          <li className="nav-item">
+            <Link {...getLinkAttributes('exam-results')}>Vizsgaeredmények</Link>
+          </li>
         </ul>
         <ul className="navbar-nav flex-row flex-wrap bd-navbar-nav">
           <li className="nav-item p-2 pe-3 text-dark">

@@ -400,4 +400,4 @@ router.post('/delete-task', needsTeacherOrAdmin, async (req, res) => {
 /* --== Exports ==-- */
 
 export default router;
-export { compileAndRunCode, getTaskById };
+export { compileAndRunCode, getTaskById, taskTable };

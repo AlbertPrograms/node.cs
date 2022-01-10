@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { UserData } from '../../App';
 import { TokenString } from '../../util/useToken';
 
-interface ProfileProps {
+interface ProfileParams {
   token: TokenString;
   userData: UserData;
 }
 
-const Profile: React.FC<ProfileProps> = ({ token, userData }) => {
+const Profile: React.FC<ProfileParams> = ({ token, userData }) => {
   const [oldPw, setOldPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [newPwConfirm, setNewPwConfirm] = useState('');

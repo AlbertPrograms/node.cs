@@ -62,4 +62,9 @@ export class TaskTable extends EntityTable<TaskParams, Task> {
 
     return TaskTable.instance;
   }
+
+  async getTasks(ids: number[]) {
+    const tasks = await this.get();
+    return tasks.filter((task) => ids.includes(task.Id));
+  }
 }
