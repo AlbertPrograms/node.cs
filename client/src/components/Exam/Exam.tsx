@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TokenString } from '../../util/useToken';
 import { Navigate } from 'react-router-dom';
+import { mapDateFromMs } from '../Exams/Exams';
 
 interface ExamParams {
   token: TokenString;
@@ -18,18 +19,6 @@ interface ExamResponse {
   canRegister: boolean;
   canUnregister: boolean;
 }
-
-const mapDateFromMs = (ms: number) => {
-  const pad = (number: number) => `${number < 10 ? '0' : ''}${number}`;
-
-  const date = new Date(ms);
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hour = pad(date.getHours());
-  const minute = pad(date.getMinutes());
-  return `${year}-${month}-${day} ${hour}:${minute}`;
-};
 
 const Exam: React.FC<ExamParams> = ({
   token,

@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useToken, { TokenString } from '../../util/useToken';
+import { mapDateFromMs } from '../Exams/Exams';
 import './Editor.css';
 
 export const enum EditorModes {
@@ -100,7 +101,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
     if (!isNaN(id)) {
       setTaskId(id);
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   // Task fetch on load and mode change
   useEffect(() => {
@@ -314,7 +315,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
       }),
       headers: { 'Content-Type': 'application/json' },
     })
-      .then(res => {
+      .then((res) => {
         if (res.status !== 200) {
           throw new Error();
         }
@@ -426,7 +427,9 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
             <div className="col col-4 col-md-2">
               <button
                 className="form-control btn btn-dark border-secondary mt-2"
-                onClick={mode === EditorModes.EXAM ? handleSubmitExam : handleSubmit}
+                onClick={
+                  mode === EditorModes.EXAM ? handleSubmitExam : handleSubmit
+                }
               >
                 Beküldés
               </button>
@@ -457,23 +460,28 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
         </form>
       </div>
       {examDetails && (
-        <div className="row p-2 exam-tasks">
-          {new Array(examDetails.taskCount).fill('').map((_, index) => (
-            <div className="col" key={index}>
-              <button
-                className={`btn btn-dark ${
-                  examDetails.successes[index]
-                    ? 'border-success'
-                    : 'border-secondary'
-                } w-100 mb-2`}
-                onClick={() => selectExamTask(index)}
-                disabled={index === examDetails.activeTask}
-              >
-                {index + 1}
-              </button>
-            </div>
-          ))}
-        </div>
+        <Fragment>
+          <div className="row p-2 exam-tasks">
+            {new Array(examDetails.taskCount).fill('').map((_, index) => (
+              <div className="col" key={index}>
+                <button
+                  className={`btn btn-dark ${
+                    examDetails.successes[index]
+                      ? 'border-success'
+                      : 'border-secondary'
+                  } w-100 mb-2`}
+                  onClick={() => selectExamTask(index)}
+                  disabled={index === examDetails.activeTask}
+                >
+                  {index + 1}
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="row exam-end-time">
+            Vizsga vége: {mapDateFromMs(examDetails.finishTime)}
+          </div>
+        </Fragment>
       )}
     </div>
   );

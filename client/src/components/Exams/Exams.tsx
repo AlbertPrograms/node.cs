@@ -531,3 +531,4 @@ const Exams: React.FC<ExamsParams> = ({ token }) => {
 };
 
 export default Exams;
+export { mapDateFromMs };

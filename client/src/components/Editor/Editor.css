@@ -8,3 +8,9 @@ textarea {
   left: 5rem;
   width: 5rem;
 }
+
+.exam-end-time {
+  position: absolute;
+  top: 5rem;
+  left: 5rem;
+}

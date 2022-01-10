@@ -254,11 +254,16 @@ router.post('/finish-exam', needsUser, async (_, res) => {
   const user = res.locals.user as User;
 
   const session = getSessionByUsername(user.Username);
+  // Expired session
+  if (new Date().getTime() > session.expiryTime) {
+    destroySession(session);
+  }
   if (!session) {
     // Doesn't have an exam in progress
     res.status(400).send();
     return;
   }
+
 
   await saveExamResult(session);
 
