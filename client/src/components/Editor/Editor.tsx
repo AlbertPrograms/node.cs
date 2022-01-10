@@ -70,6 +70,7 @@ const formatTaskDescription = (text: string): string | ReactElement => {
 const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
   const [task, setTask] = useState<string>();
   const [code, setCode] = useState('');
+  const [taskId, setTaskId] = useState<number>(0);
   const [storedCode, setStoredCode] = useState('');
   const [examDetails, setExamDetails] = useState<ExamDetails>();
   const [examTask, setExamTask] = useState(0);
@@ -93,10 +94,16 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Task id watcher
+  useEffect(() => {
+    const id = parseInt(searchParams.get('taskId') as string);
+    if (!isNaN(id)) {
+      setTaskId(id);
+    }
+  }, [searchParams])
+
   // Task fetch on load and mode change
   useEffect(() => {
-    const taskId = parseInt(searchParams.get('taskId') as string);
-
     let body: any = { sessionTokenString: token, mode };
     switch (mode) {
       case EditorModes.PRACTICE:
@@ -255,6 +262,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
       body: JSON.stringify({
         sessionTokenString: token,
         token: practiceTaskToken,
+        taskId,
         code,
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -262,8 +270,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
       .then(async (res) => {
         const response = (await res.json()) as SubmitResponse;
         setSubmitResponse(response);
-
-        setExamDetailsRefreshNeeded(true);
       })
       .catch((e) => {
         console.error(e);
@@ -278,7 +284,6 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
       method: 'POST',
       body: JSON.stringify({
         sessionTokenString: token,
-        token: practiceTaskToken,
         code,
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -360,7 +365,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
     <div className="container d-flex">
       <div className="row w-100 justify-content-center align-self-center">
         <h4>{task ? formatTaskDescription(task) : ''}</h4>
-        <form method="post" onSubmit={handleSubmit}>
+        <form method="post">
           <div className="row" style={rowStyle}>
             <div className={`col ${submitResponse ? 'col-6' : 'col-12'} h-100`}>
               <textarea
@@ -420,7 +425,7 @@ const Editor: React.FC<EditorParams> = ({ mode, token, setExamInProgress }) => {
             <div className="col col-4 col-md-2">
               <button
                 className="form-control btn btn-dark border-secondary mt-2"
-                onClick={handleSubmitExam}
+                onClick={mode === EditorModes.EXAM ? handleSubmitExam : handleSubmit}
               >
                 Beküldés
               </button>

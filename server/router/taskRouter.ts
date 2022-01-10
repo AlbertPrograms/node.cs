@@ -69,7 +69,8 @@ interface ExecutionResponse {
 
 interface SubmitTaskRequest {
   code: string;
-  token: string;
+  token?: string;
+  taskId?: number;
 }
 
 interface SubmitTaskResponse {
@@ -323,21 +324,25 @@ router.post('/store-task-progress', needsUser, async (req, res) => {
 
 // Task submission
 router.post('/submit-task', needsUser, async (req, res) => {
-  const { code, token }: SubmitTaskRequest = req.body;
+  const { code, token, taskId }: SubmitTaskRequest = req.body;
+  const user = res.locals.user as User;
 
   const taskToken = getTaskTokenFromTokenString(token);
-  if (!taskToken) {
-    res.status(400).send('Invalid token');
+  if (!taskToken && !user.isAdmin && !user.isTeacher) {
+    res.status(400).send();
     return;
   }
 
-  const task = await getTaskById(taskToken.id);
+
+  const task = await getTaskById(taskToken?.id ?? taskId);
   if (!task) {
     res.status(404).send();
   }
 
   const response = await compileAndRunCode(code, task);
-  taskToken.solved = response.success;
+  if (taskToken) {
+    taskToken.solved = response.success;
+  }
 
   if (!response) {
     res.status(500).send();
