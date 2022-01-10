@@ -42,6 +42,9 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [editedTasks, setEditedTasks] = useState<EditorTask[]>([]);
   const [mismatchingArrays, setMismatchingArrays] = useState<Boolean[]>([]);
+  const [mismatchingHiddenArrays, setMismatchingHiddenArrays] = useState<
+    Boolean[]
+  >([]);
   const [numericErrors, setNumericErrors] = useState<Boolean[]>([]);
   const [emptyDescriptions, setEmptyDescriptions] = useState<Boolean[]>([]);
   const [errors, setErrors] = useState(false);
@@ -85,12 +88,15 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
     setMismatchingArrays(
       editedTasks.map(
         (task) => task.expectedOutput.length !== (task.testData?.length || 1)
-      ) &&
-        editedTasks.map(
-          (task) =>
-            task.hiddenExpectedOutput.length !==
-            (task.hiddenTestData?.length || 1)
-        )
+      )
+    );
+
+    setMismatchingHiddenArrays(
+      editedTasks.map(
+        (task) =>
+          task.hiddenExpectedOutput.length !==
+          (task.hiddenTestData?.length || 1)
+      )
     );
 
     setNumericErrors(
@@ -109,10 +115,16 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
   useEffect(() => {
     setErrors(
       mismatchingArrays.some(Boolean) ||
+        mismatchingHiddenArrays.some(Boolean) ||
         numericErrors.some(Boolean) ||
         emptyDescriptions.some(Boolean)
     );
-  }, [mismatchingArrays, numericErrors, emptyDescriptions]);
+  }, [
+    mismatchingArrays,
+    mismatchingHiddenArrays,
+    numericErrors,
+    emptyDescriptions,
+  ]);
 
   // Empty line removal
   useEffect(() => {
@@ -435,7 +447,7 @@ const Tasks: React.FC<TaskParams> = ({ token }) => {
                   placeholder="Új érték hozzáadása"
                   onChange={addEntry(index, 'hiddenExpectedOutput')}
                 />
-                {mismatchingArrays[index] && (
+                {mismatchingHiddenArrays[index] && (
                   <p className="text-danger py-2 m-0">
                     Az elvárt kimenetek hossza meg kell egyezzen a tesztadatok
                     számával, vagy ilyen híján 1-gyel.

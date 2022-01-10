@@ -151,12 +151,16 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
     setEditedUsers(newEditedUsers);
   };
 
-  const canResetPw = ({ username, existing, admin }: EditorUser) => {
+  const canResetPwOrDeleteUser = ({
+    username,
+    existing,
+    admin,
+  }: EditorUser) => {
     return (
       existing &&
-      username !== 'admin' && // No resetting root admin ow
-      username !== selfUsername && // No reset for self
-      (selfUsername === 'admin' || !admin) // No reset for admins except by root admin
+      username !== 'admin' && // No tampering with root admin
+      username !== selfUsername && // No reset nor delete for self
+      (selfUsername === 'admin' || !admin) // No reset nore delete for admins except by root admin
     );
   };
 
@@ -192,6 +196,10 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
   };
 
   const deleteUser = ({ username, existing }: EditorUser) => {
+    if (username === 'admin') {
+      return;
+    }
+
     if (!existing) {
       // If the user doesn't exist yet, just remove the card
       const newEditedUsers = JSON.parse(JSON.stringify(editedUsers));
@@ -283,22 +291,22 @@ const Users: React.FC<UsersParams> = ({ token, selfUsername }) => {
                   )}
                   {user.dirty && user.existing && ' (*)'}
                 </div>
-                <div>
-                  {canResetPw(user) && (
+                {canResetPwOrDeleteUser(user) && (
+                  <div>
                     <button
                       className="btn btn-dark border-secondary text-danger me-2"
                       onClick={() => resetPw(user.username)}
                     >
                       Jelszóvisszaállítás
                     </button>
-                  )}
-                  <button
-                    className="btn btn-dark border-secondary text-danger"
-                    onClick={() => deleteUser(user)}
-                  >
-                    Felhasználó törlése
-                  </button>
-                </div>
+                    <button
+                      className="btn btn-dark border-secondary text-danger"
+                      onClick={() => deleteUser(user)}
+                    >
+                      Felhasználó törlése
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="card-body">
                 {usernameErrors[index] && (
